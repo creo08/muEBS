@@ -27,10 +27,13 @@ function repo() {
   return { ort, git, lauf, fertig: () => rmSync(ort, { recursive: true, force: true }) };
 }
 
-test('sauberes Repo: Exit-Code 0', () => {
+test('sauberes Repo: Exit-Code 0, auch wenn die erlaubte Adresse in Dateien steht', () => {
   const r = repo();
+  writeFileSync(join(r.ort, 'A.md'), `Kontakt: 285598642+creo08${AT}users.noreply.github.com\n`);
+  writeFileSync(join(r.ort, 'B.md'), 'Text\n');
   const e = r.lauf();
   assert.equal(e.status, 0, e.stdout);
+  assert.match(e.stdout, /keine Funde/);
   r.fertig();
 });
 
