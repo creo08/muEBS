@@ -41,12 +41,17 @@ test('Mitautor, Sitzungs-Link und fremde Identität in der Historie: Exit-Code 1
   const r = repo();
   r.git('commit', '-q', '--allow-empty', '-m', `x\n\n${MIT}: Jemand <jemand${AT}example.org>\nClaude-` + `Session: ${SITZUNG}abc`);
   execFileSync('git', ['commit', '-q', '--allow-empty', '-m', 'y'], { cwd: r.ort, env: { ...process.env, ...GUT, GIT_AUTHOR_NAME: 'Echter Name' } });
+  // GitHub ist als Committer erlaubt, als Autor nicht
+  execFileSync('git', ['commit', '-q', '--allow-empty', '-m', 'Merge'], { cwd: r.ort, env: { ...process.env, ...GUT, GIT_COMMITTER_NAME: 'GitHub', GIT_COMMITTER_EMAIL: `noreply${AT}github.com` } });
+  execFileSync('git', ['commit', '-q', '--allow-empty', '-m', 'z'], { cwd: r.ort, env: { ...process.env, ...GUT, GIT_AUTHOR_NAME: 'GitHub', GIT_AUTHOR_EMAIL: `noreply${AT}github.com` } });
   r.git('tag', '-a', 'v0.0.1', '-m', `Signed-off-by: A <a${AT}example.org>`);
   const e = r.lauf();
   assert.equal(e.status, 1);
   assert.match(e.stdout, /Mitautor/);
   assert.match(e.stdout, /Sitzungs-Zeile/);
   assert.match(e.stdout, /Autor ist Echter Name/);
+  assert.match(e.stdout, /Autor ist GitHub/);
+  assert.doesNotMatch(e.stdout, /Committer ist GitHub/);
   assert.match(e.stdout, /Tag v0\.0\.1/);
   assert.match(e.stdout, /nie automatisch umgeschrieben/);
   r.fertig();
