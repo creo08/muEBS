@@ -8,6 +8,9 @@ set -euo pipefail
 ERLAUBT_IDENTITAET='creo08 <285598642+creo08@users.noreply.github.com>'
 # Merges über die GitHub-Oberfläche haben immer GitHub als Committer; Autor bleibt creo08
 ERLAUBT_COMMITTER_GITHUB='GitHub <noreply@github.com>'
+# Dependabot darf Autor und Committer sein; nur bei seinen Commits ist seine Signed-off-by-Zeile erlaubt
+DEPENDABOT='dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>'
+DEPENDABOT_ZEILE='Signed-off-by: dependabot[bot] <support@github.com>'
 ERLAUBT_MAIL='285598642+creo08@users.noreply.github.com'
 ERLAUBTE_URLS='^https://github\.com/creo08/muEBS(/|$)|^https://github\.com/relaxin101/barsystem$'
 SELBST='scripts/cleanup.sh'
@@ -30,7 +33,7 @@ MITAUTOR='^[[:space:]]*Co-Authored-By:'
 TRAILER_PERSON='^[A-Za-z][A-Za-z-]*-[Bb]y:|^[A-Za-z][A-Za-z-]*:[^<]*<[^>]*@[^>]*>'
 MAIL='[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
 
-# Prüft einen Text; $1 = Ort, Text auf stdin
+# Prüft einen Text; $1 = Ort, Text auf stdin. Nie in einer Pipe aufrufen: FUNDE würde in der Subshell verloren gehen.
 pruefe_text() {
   local ort="$1" text zeile
   text="$(cat)"
@@ -39,7 +42,7 @@ pruefe_text() {
   done < <(grep -E "$SITZUNG" <<<"$text" || true)
   while IFS= read -r zeile; do
     [[ -n "$zeile" ]] && fund "$ort" "Mitautor- oder Personen-Trailer: $zeile"
-  done < <(grep -iE "$MITAUTOR" <<<"$text"; grep -E "$TRAILER_PERSON" <<<"$text" | grep -viE "$MITAUTOR" || true)
+  done < <({ grep -iE "$MITAUTOR" <<<"$text" || true; } && { grep -E "$TRAILER_PERSON" <<<"$text" | grep -viE "$MITAUTOR" || true; })
   while IFS= read -r zeile; do
     [[ -n "$zeile" && "$zeile" != "$ERLAUBT_MAIL" && "$zeile" != "noreply@github.com" ]] && fund "$ort" "E-Mail-Adresse: $zeile"
   done < <(grep -oE "$MAIL" <<<"$text" | sort -u || true)
@@ -52,9 +55,13 @@ while IFS= read -r commit; do
   autor="$(git show -s --format='%an <%ae>' "$commit")"
   committer="$(git show -s --format='%cn <%ce>' "$commit")"
   vorher=$FUNDE
-  [[ "$autor" == "$ERLAUBT_IDENTITAET" ]] || fund "Commit $kurz" "Autor ist $autor"
-  [[ "$committer" == "$ERLAUBT_IDENTITAET" || "$committer" == "$ERLAUBT_COMMITTER_GITHUB" ]] || fund "Commit $kurz" "Committer ist $committer"
-  git show -s --format='%B' "$commit" | pruefe_text "Commit $kurz"
+  [[ "$autor" == "$ERLAUBT_IDENTITAET" || "$autor" == "$DEPENDABOT" ]] || fund "Commit $kurz" "Autor ist $autor"
+  [[ "$committer" == "$ERLAUBT_IDENTITAET" || "$committer" == "$ERLAUBT_COMMITTER_GITHUB" || "$committer" == "$DEPENDABOT" ]] || fund "Commit $kurz" "Committer ist $committer"
+  if [[ "$autor" == "$DEPENDABOT" ]]; then
+    pruefe_text "Commit $kurz" < <(git show -s --format='%B' "$commit" | grep -vxF "$DEPENDABOT_ZEILE" || true)
+  else
+    pruefe_text "Commit $kurz" < <(git show -s --format='%B' "$commit")
+  fi
   if [[ $FUNDE -gt $vorher ]]; then HISTORIE=1; fi
 done < <(git rev-list --all)
 
@@ -64,7 +71,7 @@ while IFS=$'\t' read -r tag typ; do
   vorher=$FUNDE
   tagger="$(git for-each-ref --format='%(taggername) %(taggeremail)' "refs/tags/$tag")"
   [[ "$tagger" == "$ERLAUBT_IDENTITAET" ]] || fund "Tag $tag" "Tagger ist $tagger"
-  git for-each-ref --format='%(contents)' "refs/tags/$tag" | pruefe_text "Tag $tag"
+  pruefe_text "Tag $tag" < <(git for-each-ref --format='%(contents)' "refs/tags/$tag")
   if [[ $FUNDE -gt $vorher ]]; then HISTORIE=1; fi
 done < <(git for-each-ref --format='%(refname:short)%09%(objecttype)' refs/tags)
 
