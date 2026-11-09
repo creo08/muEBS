@@ -1,0 +1,138 @@
+/* Farbschemen: jedes setzt nur CSS-Variablen. Umschalten nur über das Attribut data-schema. */
+
+:root,
+[data-schema="violett"] {
+  --hintergrund: #F0EDF8;
+  --haupt: #6B5B9E;
+  --hover: #574A85;
+  --sekundaer: #D8D2EE;
+  --akzent: #9B8EC4;
+  --kachel-1: #5A4A8C;
+  --kachel-2: #6B5B9E;
+  --kachel-3: #574A85;
+  --kachel-4: #7A5694;
+  --kachel-5: #8A4F86;
+  --kachel-6: #4E4377;
+  --kachel-7: #6E4D8A;
+  --kachel-8: #855B9E;
+  --kachel-text: #FFFFFF;
+}
+
+[data-schema="blau"] {
+  --hintergrund: #EBF0F8;
+  --haupt: #2F5A9E;
+  --hover: #24487F;
+  --sekundaer: #CFDBEE;
+  --akzent: #7F9CC9;
+  --kachel-1: #1F4E8C;
+  --kachel-2: #2F5A9E;
+  --kachel-3: #24487F;
+  --kachel-4: #2A5F8F;
+  --kachel-5: #3A5590;
+  --kachel-6: #1E3F73;
+  --kachel-7: #355C8A;
+  --kachel-8: #2B4F99;
+  --kachel-text: #FFFFFF;
+}
+
+[data-schema="tuerkis"] {
+  --hintergrund: #E8F4F4;
+  --haupt: #0F6B6B;
+  --hover: #0B5555;
+  --sekundaer: #C5E3E3;
+  --akzent: #5FA8A8;
+  --kachel-1: #0E6464;
+  --kachel-2: #0F6B6B;
+  --kachel-3: #0B5555;
+  --kachel-4: #136A75;
+  --kachel-5: #1B5E66;
+  --kachel-6: #0A4D52;
+  --kachel-7: #1F6468;
+  --kachel-8: #125F70;
+  --kachel-text: #FFFFFF;
+}
+
+[data-schema="gruen"] {
+  --hintergrund: #ECF4EB;
+  --haupt: #2E6B34;
+  --hover: #24552A;
+  --sekundaer: #CBE3C8;
+  --akzent: #76AA70;
+  --kachel-1: #2E6B34;
+  --kachel-2: #24552A;
+  --kachel-3: #386530;
+  --kachel-4: #2F5E3A;
+  --kachel-5: #1F4F27;
+  --kachel-6: #3A6440;
+  --kachel-7: #2B5F22;
+  --kachel-8: #33664A;
+  --kachel-text: #FFFFFF;
+}
+
+[data-schema="gelb"] {
+  --hintergrund: #FBF7E6;
+  --haupt: #6E5200;
+  --hover: #574100;
+  --sekundaer: #F2E6B8;
+  --akzent: #C9A93E;
+  --kachel-1: #F5D76E;
+  --kachel-2: #F2CC4B;
+  --kachel-3: #EEDC8A;
+  --kachel-4: #F7E3A1;
+  --kachel-5: #E8C547;
+  --kachel-6: #F0D060;
+  --kachel-7: #EBD27A;
+  --kachel-8: #F3DB8F;
+  --kachel-text: #2A2737;
+}
+
+[data-schema="orange"] {
+  --hintergrund: #FBF0E8;
+  --haupt: #9C4712;
+  --hover: #7F3A0E;
+  --sekundaer: #F2D6C3;
+  --akzent: #D98A55;
+  --kachel-1: #9C4712;
+  --kachel-2: #8A3F10;
+  --kachel-3: #A64C14;
+  --kachel-4: #94471F;
+  --kachel-5: #7A3A12;
+  --kachel-6: #9A4D1C;
+  --kachel-7: #8F4A1A;
+  --kachel-8: #984213;
+  --kachel-text: #FFFFFF;
+}
+
+[data-schema="rot"] {
+  --hintergrund: #FAEDED;
+  --haupt: #A02B2B;
+  --hover: #852323;
+  --sekundaer: #F0CFCF;
+  --akzent: #D07070;
+  --kachel-1: #A02B2B;
+  --kachel-2: #852323;
+  --kachel-3: #9A3636;
+  --kachel-4: #8A2F3F;
+  --kachel-5: #AB2E2E;
+  --kachel-6: #7A2626;
+  --kachel-7: #963344;
+  --kachel-8: #9F362A;
+  --kachel-text: #FFFFFF;
+}
+
+[data-schema="grau"] {
+  --hintergrund: #F0F0F2;
+  --haupt: #4F5563;
+  --hover: #3F4450;
+  --sekundaer: #D6D8DE;
+  --akzent: #8C919C;
+  --kachel-1: #4F5563;
+  --kachel-2: #3F4450;
+  --kachel-3: #585D69;
+  --kachel-4: #474D59;
+  --kachel-5: #5C6270;
+  --kachel-6: #3A3F4A;
+  --kachel-7: #535966;
+  --kachel-8: #4A4F5C;
+  --kachel-text: #FFFFFF;
+}
