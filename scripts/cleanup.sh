@@ -6,6 +6,8 @@
 set -euo pipefail
 
 ERLAUBT_IDENTITAET='creo08 <285598642+creo08@users.noreply.github.com>'
+# Merges über die GitHub-Oberfläche haben immer GitHub als Committer; Autor bleibt creo08
+ERLAUBT_COMMITTER_GITHUB='GitHub <noreply@github.com>'
 ERLAUBT_MAIL='285598642+creo08@users.noreply.github.com'
 ERLAUBTE_URLS='^https://github\.com/creo08/muEBS(/|$)|^https://github\.com/relaxin101/barsystem$'
 SELBST='scripts/cleanup.sh'
@@ -39,7 +41,7 @@ pruefe_text() {
     [[ -n "$zeile" ]] && fund "$ort" "Mitautor- oder Personen-Trailer: $zeile"
   done < <(grep -iE "$MITAUTOR" <<<"$text"; grep -E "$TRAILER_PERSON" <<<"$text" | grep -viE "$MITAUTOR" || true)
   while IFS= read -r zeile; do
-    [[ -n "$zeile" && "$zeile" != "$ERLAUBT_MAIL" ]] && fund "$ort" "E-Mail-Adresse: $zeile"
+    [[ -n "$zeile" && "$zeile" != "$ERLAUBT_MAIL" && "$zeile" != "noreply@github.com" ]] && fund "$ort" "E-Mail-Adresse: $zeile"
   done < <(grep -oE "$MAIL" <<<"$text" | sort -u || true)
   return 0 # sonst bricht set -e ab, wenn der letzte Treffer erlaubt ist
 }
@@ -51,7 +53,7 @@ while IFS= read -r commit; do
   committer="$(git show -s --format='%cn <%ce>' "$commit")"
   vorher=$FUNDE
   [[ "$autor" == "$ERLAUBT_IDENTITAET" ]] || fund "Commit $kurz" "Autor ist $autor"
-  [[ "$committer" == "$ERLAUBT_IDENTITAET" ]] || fund "Commit $kurz" "Committer ist $committer"
+  [[ "$committer" == "$ERLAUBT_IDENTITAET" || "$committer" == "$ERLAUBT_COMMITTER_GITHUB" ]] || fund "Commit $kurz" "Committer ist $committer"
   git show -s --format='%B' "$commit" | pruefe_text "Commit $kurz"
   if [[ $FUNDE -gt $vorher ]]; then HISTORIE=1; fi
 done < <(git rev-list --all)
