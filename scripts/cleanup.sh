@@ -41,6 +41,7 @@ pruefe_text() {
   while IFS= read -r zeile; do
     [[ -n "$zeile" && "$zeile" != "$ERLAUBT_MAIL" ]] && fund "$ort" "E-Mail-Adresse: $zeile"
   done < <(grep -oE "$MAIL" <<<"$text" | sort -u || true)
+  return 0 # sonst bricht set -e ab, wenn der letzte Treffer erlaubt ist
 }
 
 # ---------- 1. Git-Historie aller Branches und Tags ----------
@@ -52,7 +53,7 @@ while IFS= read -r commit; do
   [[ "$autor" == "$ERLAUBT_IDENTITAET" ]] || fund "Commit $kurz" "Autor ist $autor"
   [[ "$committer" == "$ERLAUBT_IDENTITAET" ]] || fund "Commit $kurz" "Committer ist $committer"
   git show -s --format='%B' "$commit" | pruefe_text "Commit $kurz"
-  [[ $FUNDE -gt $vorher ]] && HISTORIE=1
+  if [[ $FUNDE -gt $vorher ]]; then HISTORIE=1; fi
 done < <(git rev-list --all)
 
 while IFS=$'\t' read -r tag typ; do
@@ -62,7 +63,7 @@ while IFS=$'\t' read -r tag typ; do
   tagger="$(git for-each-ref --format='%(taggername) %(taggeremail)' "refs/tags/$tag")"
   [[ "$tagger" == "$ERLAUBT_IDENTITAET" ]] || fund "Tag $tag" "Tagger ist $tagger"
   git for-each-ref --format='%(contents)' "refs/tags/$tag" | pruefe_text "Tag $tag"
-  [[ $FUNDE -gt $vorher ]] && HISTORIE=1
+  if [[ $FUNDE -gt $vorher ]]; then HISTORIE=1; fi
 done < <(git for-each-ref --format='%(refname:short)%09%(objecttype)' refs/tags)
 
 if git log --all --format=%h -- muebs.md | grep -q .; then
