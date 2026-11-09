@@ -83,7 +83,7 @@ Playwright-WebKit ist nicht iOS Safari. Vor jedem Release auf einem echten iPhon
 
 ## Git-Regeln
 
-- Autor und Committer nur `creo08 <285598642+creo08@users.noreply.github.com>`. Einzige Ausnahme: Merges über die GitHub-Oberfläche haben `GitHub <noreply@github.com>` als Committer; das lässt `scripts/cleanup.sh` zu.
+- Autor und Committer nur `creo08 <285598642+creo08@users.noreply.github.com>`. Einzige Ausnahme: Merges über die GitHub-Oberfläche haben `GitHub <noreply@github.com>` als Committer; das lässt `scripts/cleanup.sh` zu. Pull Requests von Dependabot dürfen `dependabot[bot]` als Autor und Committer und dessen `Signed-off-by`-Zeile haben.
 - Der Profilname bei GitHub muss `creo08` sein (oder leer), weil GitHub ihn bei Squash-Merges als Autor einträgt.
 - Keine Mitautor-Zeilen, keine Sitzungs-Zeilen oder -Links, keine privaten Adressen, keine echten Namen.
 - Nie direkt auf `main`; jede Änderung als Branch und Pull Request. Änderungen unter `.github/` in eigenen Pull Requests.

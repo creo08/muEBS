@@ -37,6 +37,18 @@ test('sauberes Repo: Exit-Code 0, auch wenn die erlaubte Adresse in Dateien steh
   r.fertig();
 });
 
+test('Dependabot: Autor und seine Signed-off-by-Zeile erlaubt, sonst nichts', () => {
+  const r = repo();
+  const bot = { GIT_AUTHOR_NAME: 'dependabot[bot]', GIT_AUTHOR_EMAIL: `49699333+dependabot[bot]${AT}users.noreply.github.com`, GIT_COMMITTER_NAME: 'GitHub', GIT_COMMITTER_EMAIL: `noreply${AT}github.com` };
+  const zeile = `Signed-off-by: dependabot[bot] <support${AT}github.com>`;
+  execFileSync('git', ['commit', '-q', '--allow-empty', '-m', `Bump x\n\n${zeile}`], { cwd: r.ort, env: { ...process.env, ...bot } });
+  assert.equal(r.lauf().status, 0, r.lauf().stdout);
+  // dieselbe Zeile in einem Commit von creo08 ist ein Fund
+  r.git('commit', '-q', '--allow-empty', '-m', `y\n\n${zeile}`);
+  assert.equal(r.lauf().status, 1);
+  r.fertig();
+});
+
 test('Mitautor, Sitzungs-Link und fremde Identität in der Historie: Exit-Code 1', () => {
   const r = repo();
   r.git('commit', '-q', '--allow-empty', '-m', `x\n\n${MIT}: Jemand <jemand${AT}example.org>\nClaude-` + `Session: ${SITZUNG}abc`);
@@ -54,6 +66,16 @@ test('Mitautor, Sitzungs-Link und fremde Identität in der Historie: Exit-Code 1
   assert.doesNotMatch(e.stdout, /Committer ist GitHub/);
   assert.match(e.stdout, /Tag v0\.0\.1/);
   assert.match(e.stdout, /nie automatisch umgeschrieben/);
+  r.fertig();
+});
+
+test('Funde nur im Commit-Text zählen für den Exit-Code', () => {
+  const r = repo();
+  r.git('commit', '-q', '--allow-empty', '-m', `x\n\nSigned-off-by: A <a${AT}example.org>`);
+  const e = r.lauf();
+  assert.equal(e.status, 1, e.stdout);
+  assert.match(e.stdout, /Personen-Trailer: Signed-off-by/);
+  assert.match(e.stdout, /2 Fund\(e\)/);
   r.fertig();
 });
 
