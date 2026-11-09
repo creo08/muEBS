@@ -1,0 +1,129 @@
+# Release per Knopfdruck: prüfen, Version berechnen, nach GitHub Pages deployen,
+# danach Tag und GitHub Release setzen.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      art:
+        description: Art der neuen Version
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  bauen:
+    name: Prüfen und bauen
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Code holen (ganze Historie und Tags)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Node.js aus .nvmrc
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Typprüfung
+        run: npx tsc --noEmit
+
+      - name: Unit-Tests
+        run: node --test tests/unit/
+
+      - name: Playwright-Browser
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: E2E-Tests (Chromium und WebKit)
+        run: npx playwright test
+
+      - name: cleanup.sh
+        run: bash scripts/cleanup.sh
+
+      - name: Nächste Version nach SemVer
+        id: version
+        env:
+          ART: ${{ inputs.art }}
+        run: |
+          letzte="$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
+          if [ -z "$letzte" ]; then
+            neu="0.1.0"
+          else
+            IFS=. read -r major minor patch <<<"${letzte#v}"
+            case "$ART" in
+              major) neu="$((major + 1)).0.0" ;;
+              minor) neu="${major}.$((minor + 1)).0" ;;
+              patch) neu="${major}.${minor}.$((patch + 1))" ;;
+              *) echo "::error::Unbekannte Art: $ART"; exit 1 ;;
+            esac
+          fi
+          if git rev-parse -q --verify "refs/tags/v${neu}" >/dev/null; then
+            echo "::error::Tag v${neu} gibt es schon."
+            exit 1
+          fi
+          echo "version=${neu}" >> "$GITHUB_OUTPUT"
+          echo "Neue Version: v${neu}"
+
+      - name: Artefakt zusammenstellen
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir _site
+          cp -r index.html sw.js manifest.webmanifest css js icons demo _site/
+          # version.json nur im Artefakt, nie im Repo
+          printf '{"version":"%s","sha":"%s"}\n' "$VERSION" "$(git rev-parse --short HEAD)" > _site/version.json
+          cat _site/version.json
+
+      - name: Artefakt hochladen
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    name: Nach GitHub Pages deployen
+    needs: bauen
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  release:
+    name: Tag und Release
+    needs: [bauen, deploy]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Tag vX.Y.Z auf genau diesen Commit und GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.bauen.outputs.version }}
+          COMMIT: ${{ github.sha }}
+        run: gh release create "v${VERSION}" --target "$COMMIT" --title "v${VERSION}" --generate-notes
