@@ -81,7 +81,8 @@ export function gueltige(buchungen) {
   const storniert = stornierte(buchungen);
   return buchungen
     .filter((b) => b.typ !== 'storno' && !storniert.has(b.id))
-    .sort((a, b) => (a.zeitstempel < b.zeitstempel ? -1 : a.zeitstempel > b.zeitstempel ? 1 : 0));
+    // bei gleicher Zeit nach id, damit jede Reihenfolge der Eingabe dasselbe Ergebnis gibt
+    .sort((a, b) => (a.zeitstempel < b.zeitstempel ? -1 : a.zeitstempel > b.zeitstempel ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
 /**
@@ -117,6 +118,22 @@ export function schwaerzung(bisher, guthaben, grenze) {
   if (guthaben < grenze) return true;
   if (guthaben >= 0) return false;
   return bisher;
+}
+
+/**
+ * Schwärzungs-Merker aus dem Verlauf der gültigen Buchungen eines Mitglieds.
+ * Ein Storno nimmt die Buchung aus dem Verlauf und damit auch die Schwärzung, die sie ausgelöst hat.
+ * @param {Buchung[]} buchungen Buchungen eines Mitglieds
+ * @param {number} grenze
+ */
+export function schwaerzungAusVerlauf(buchungen, grenze) {
+  let saldo = 0;
+  let schwarz = false;
+  for (const b of gueltige(buchungen)) {
+    saldo += b.gesamtpreis;
+    schwarz = schwaerzung(schwarz, saldo, grenze);
+  }
+  return schwarz;
 }
 
 /**

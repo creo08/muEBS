@@ -1,7 +1,7 @@
 // @ts-check
 // Prüfung von Sicherung und Projekt. Jede Datei ist nicht vertrauenswürdig.
 import { FORMAT, SCHEMEN, MAX_PREIS, MAX_BETRAG } from './konstanten.js';
-import { textFehler, salden, schwaerzung } from './regeln.js';
+import { textFehler, salden, schwaerzungAusVerlauf } from './regeln.js';
 
 /** @typedef {import('./regeln.js').Projekt} Projekt */
 /** @typedef {import('./regeln.js').Mitglied} Mitglied */
@@ -241,10 +241,17 @@ export function pruefeDatei(roh, ziel) {
   }
 
   const saldo = salden([...buchungen.values()]);
+  /** @type {Map<number, Buchung[]>} */
+  const jeMitglied = new Map();
+  for (const b of buchungen.values()) {
+    const liste = jeMitglied.get(b.mitglied_id) ?? [];
+    liste.push(b);
+    jeMitglied.set(b.mitglied_id, liste);
+  }
   for (const m of mitglieder.values()) {
     if ((saldo.get(m.id) ?? 0) !== m.guthaben) fehler(MELDUNG_UNSTIMMIG);
-    // Merker muss zur Hysterese passen
-    if (schwaerzung(m.geschwaerzt, m.guthaben, projekt.schwaerzungs_grenze) !== m.geschwaerzt) fehler(MELDUNG_UNSTIMMIG);
+    // Merker muss genau zum Verlauf passen
+    if (schwaerzungAusVerlauf(jeMitglied.get(m.id) ?? [], projekt.schwaerzungs_grenze) !== m.geschwaerzt) fehler(MELDUNG_UNSTIMMIG);
   }
 
   /** @type {Datei} */

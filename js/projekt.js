@@ -17,7 +17,8 @@ export function leeresProjekt(daten, uebernehmen, geraet) {
     nickname: m.nickname,
     aktiv: m.aktiv,
     guthaben: uebernehmen ? m.guthaben : 0,
-    geschwaerzt: uebernehmen ? m.geschwaerzt : false,
+    // der Verlauf besteht danach nur aus dem Übertrag
+    geschwaerzt: uebernehmen && m.guthaben < daten.projekt.schwaerzungs_grenze,
   }));
   const buchungen = uebernehmen
     ? mitglieder.filter((m) => m.guthaben !== 0).map((m) => ({

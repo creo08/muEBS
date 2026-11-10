@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { aufstellung, gesamtpreis, hotlist, kassiertagBeginn, salden, schwaerzung, speicherFehlerText, stornierte, textFehler } from '../../js/regeln.js';
+import { aufstellung, schwaerzungAusVerlauf, gesamtpreis, hotlist, kassiertagBeginn, salden, schwaerzung, speicherFehlerText, stornierte, textFehler } from '../../js/regeln.js';
 
 let n = 0;
 /** @param {Partial<import('../../js/regeln.js').Buchung>} b */
@@ -42,6 +42,21 @@ test('Schwärzung mit Hysterese: an unter Grenze, aus erst bei >= 0', () => {
   assert.equal(schwaerzung(true, -1, -2000), true);
   assert.equal(schwaerzung(true, 0, -2000), false);
   assert.equal(schwaerzung(false, -1, 0), true);
+});
+
+test('Schwärzung aus dem Verlauf: Storno der auslösenden Buchung hebt sie auf', () => {
+  const vorher = buchung({ typ: 'uebertrag', artikel_id: null, preis_pro_einheit: -1000, gesamtpreis: -1000 });
+  const ausloeser = buchung({ menge: 5, preis_pro_einheit: 350, gesamtpreis: -1750 });
+  assert.equal(schwaerzungAusVerlauf([vorher, ausloeser], -2000), true);
+  const storno = buchung({ typ: 'storno', storno_von: ausloeser.id, artikel_id: null, preis_pro_einheit: 0, gesamtpreis: 0 });
+  // -10,00 €: unter 0, aber ohne die stornierte Buchung nie unter der Grenze
+  assert.equal(schwaerzungAusVerlauf([vorher, ausloeser, storno], -2000), false);
+  // Hysterese bleibt: Teilzahlung nach der Schwärzung hebt sie nicht auf
+  const teil = buchung({ typ: 'zahlung', artikel_id: null, preis_pro_einheit: 1000, gesamtpreis: 1000 });
+  assert.equal(schwaerzungAusVerlauf([vorher, ausloeser, teil], -2000), true);
+  // Storno aufheben schwärzt wieder
+  const zurueck = buchung({ typ: 'storno', storno_von: ausloeser.id, artikel_id: null, preis_pro_einheit: 0, gesamtpreis: 0 });
+  assert.equal(schwaerzungAusVerlauf([vorher, ausloeser, storno, zurueck], -2000), true);
 });
 
 test('Kassiertag beginnt um 06:00 Ortszeit', () => {
