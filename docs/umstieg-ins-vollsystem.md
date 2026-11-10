@@ -2,7 +2,7 @@
 
 *Art: Anleitung. Von µEBS ins Vollsystem [Ergo Bibamus](https://github.com/relaxin101/barsystem) wechseln.*
 
-> **Warnung:** Nur in ein **leeres** Vollsystem importieren. In einem schon befüllten Vollsystem überschreibt der Import Mitglieder und Artikel mit derselben id (Name, Spitzname, aktiv, Grenze bzw. Name, Preis, aktiv, Typ) und zählt die Guthaben zu den vorhandenen dazu. Gibt es dort schon einen Artikel mit gleichem Namen unter einer anderen id, bricht der Artikel-Import ganz ab, Mitglieder und Guthaben kommen trotzdem an.
+> **Warnung:** Nur in ein **leeres** Vollsystem importieren. In einem schon befüllten Vollsystem überschreibt der Import Mitglieder und Artikel mit derselben id (Name, Spitzname, aktiv, Grenze bzw. Name, Preis, aktiv, Typ) und zählt die Guthaben zu den vorhandenen dazu; eine leere Grenze löscht dabei die Grenze eines vorhandenen Mitglieds (kein Limit). Gibt es dort schon einen Artikel mit gleichem Namen unter einer anderen id, bricht der Artikel-Import ganz ab, Mitglieder und Guthaben kommen trotzdem an.
 
 Das Format ist gegen Commit `6ef739e` des Vollsystems geprüft: Import über die Admin-Formulare in ein leeres System, mit SQLite und mit PostgreSQL, danach stimmen alle Mitglieder, Artikel und Guthaben überein (Testdaten: Demo und `tests/fixtures/umstieg-grenzfaelle.json`).
 
@@ -12,7 +12,7 @@ Admin-Bereich → „Exporte“ → „Umstieg ins Vollsystem“. Dort steht auc
 
 | Datei | Spalten | Inhalt |
 |---|---|---|
-| `mitglieder_v1.csv` | `id;name;nickname;aktiv;schwaerzungs_grenze` | Alle Mitglieder, auch inaktive (`aktiv` 0). `schwaerzungs_grenze` ist die globale Grenze in Euro, wenn die Schwärzung ein ist; leer, wenn aus (im Vollsystem „Kein Limit“). |
+| `mitglieder_v1.csv` | `id;name;nickname;aktiv;schwaerzungs_grenze` | Alle Mitglieder, auch inaktive (`aktiv` 0). `schwaerzungs_grenze` ist die Grenze aus µEBS in Euro, wenn die Schwärzung ein ist; leer, wenn aus. Bei leerer Grenze übernimmt das Vollsystem beim Import seine globale Grenze (`MINDEST_GUTHABEN` in seiner `.env`); ist dort keine gesetzt, gilt kein Limit. |
 | `artikel_v1.csv` | `id;reihenfolge;name;preis;aktiv;typ` | Alle Artikel, auch inaktive (`aktiv` 0), Preis in Euro, `typ` immer `stueck`. |
 | `guthaben_v1.csv` | `id;betrag` | Nur Mitglieder mit Saldo ≠ 0 (auch inaktive); `betrag` ist der Saldo, auch negativ. |
 

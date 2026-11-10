@@ -33,7 +33,8 @@ export function doppelteArtikelnamen(artikel) {
 const aktiv = (wert) => (wert ? '1' : '0');
 
 /**
- * Grenze global in Euro, wenn Schwärzung ein; leer heißt im Vollsystem „Kein Limit“.
+ * Grenze global in Euro, wenn Schwärzung ein; sonst leer. Bei neuen Mitgliedern setzt das Vollsystem für leer
+ * seine globale Grenze (MINDEST_GUTHABEN); nur ohne diese gilt dort kein Limit.
  * @param {Mitglied[]} mitglieder
  * @param {Projekt} projekt
  */
