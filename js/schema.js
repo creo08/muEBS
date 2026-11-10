@@ -250,8 +250,8 @@ export function pruefeDatei(roh, ziel) {
   }
   for (const m of mitglieder.values()) {
     if ((saldo.get(m.id) ?? 0) !== m.guthaben) fehler(MELDUNG_UNSTIMMIG);
-    // Merker muss genau zum Verlauf passen
-    if (schwaerzungAusVerlauf(jeMitglied.get(m.id) ?? [], projekt.schwaerzungs_grenze) !== m.geschwaerzt) fehler(MELDUNG_UNSTIMMIG);
+    // Der Merker ist abgeleitet: aus dem Verlauf bestimmen statt abzulehnen (Sicherungen aus v0.1.0 führten ihn anders)
+    m.geschwaerzt = schwaerzungAusVerlauf(jeMitglied.get(m.id) ?? [], projekt.schwaerzungs_grenze);
   }
 
   /** @type {Datei} */
