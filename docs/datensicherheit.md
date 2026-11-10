@@ -27,7 +27,7 @@ Der PIN hält am Tresen davon ab, versehentlich oder neugierig in den Admin-Bere
 
 - Wer das Gerät entsperrt in der Hand hat, kann die Daten über die Entwicklerwerkzeuge des Browsers lesen oder ändern.
 - „Sicherung exportieren“ geht immer ohne PIN.
-- Der PIN liegt nur als Hash am Gerät, nie in Sicherung oder Projekt. 4 Ziffern lassen sich trotzdem leicht durchprobieren.
+- Der PIN liegt nur als Hash am Gerät, nie in Sicherung oder Projekt. Nach 5 Fehlversuchen gibt es 30 Sekunden Pause; ein Neuladen der Seite setzt den Zähler zurück. Wer die Daten selbst auslesen kann, probiert die 10.000 möglichen PINs trotzdem in Sekunden durch.
 
 ## Schwärzung ist sichtbar
 

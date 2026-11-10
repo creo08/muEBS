@@ -119,6 +119,12 @@ async function routeMitProjekt(teile) {
   }
 }
 
+/** Startseite genau einmal zeichnen: Ein neuer Hash löst selbst hashchange aus. */
+function zurStartseite() {
+  if (location.hash === '#/') zeige();
+  else location.hash = '#/';
+}
+
 const aufStartseite = () => zustand.projekt !== null && (location.hash === '' || location.hash === '#/' || location.hash === '#');
 
 // ---------- Startseite ----------
@@ -438,8 +444,7 @@ function initSeite() {
         if (!f) return void (fehler.textContent = 'Bitte eine Datei wählen');
         try {
           if (await importiere(f)) {
-            location.hash = '#/';
-            zeige();
+            zurStartseite();
           }
         } catch (x) {
           fehler.textContent = x instanceof PruefFehler ? x.message : speicherFehlerText(x);
@@ -586,8 +591,7 @@ async function starteDemo() {
     zustand.demo = true;
     zustand.geraet = await geraetId(demo);
     zustand.projekt = datei.projekt;
-    location.hash = '#/';
-    zeige();
+    zurStartseite();
   } catch (f) {
     seite('Demo', el('p', { role: 'alert', class: 'fehler' }, `Demo kann nicht starten: ${f instanceof Error ? f.message : String(f)}`), el('p', {}, el('a', { href: '#/' }, 'Zurück')));
   }
@@ -603,8 +607,7 @@ async function beendeDemo() {
   zustand.entsperrt = false;
   zustand.geraet = await geraetId(echt);
   zustand.projekt = (await ladeProjekt(echt)) ?? null;
-  location.hash = '#/';
-  zeige();
+  zurStartseite();
 }
 
 // ---------- Service Worker und Updates ----------

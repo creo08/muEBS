@@ -70,6 +70,13 @@ test('Typen, Felder, Verweise und Stimmigkeit', () => {
   for (const [aendern, meldung] of faelle) assert.throws(() => pruefeDatei(mit(aendern), { echt: false }), meldung, aendern.toString());
 });
 
+test('tief verschachtelte Datei wird sauber abgelehnt, lange Feldnamen gekürzt', () => {
+  const tief = JSON.parse('['.repeat(100000) + ']'.repeat(100000));
+  assert.throws(() => pruefeDatei({ ...datei(), buchungen: tief }, { echt: false }), /zu tief verschachtelt/);
+  const lang = 'x'.repeat(100000);
+  assert.throws(() => pruefeDatei(mit((d) => { d.mitglieder[0][lang] = 1; }), { echt: false }), (f) => f.message.length < 200);
+});
+
 test('Keine Datei', () => {
   for (const roh of [null, [], 'x', 1]) assert.throws(() => pruefeDatei(roh, { echt: false }));
 });
