@@ -11,7 +11,7 @@ import {
 import { leeresProjekt } from './projekt.js';
 import { abrechnungCsv } from './csv.js';
 import { datenschutzInhalt } from './datenschutz.js';
-import { ARTIKEL_DATEI, GUTHABEN_DATEI, MITGLIEDER_DATEI, artikelCsv, guthabenCsv, mitgliederCsv } from './umstieg.js';
+import { ARTIKEL_DATEI, GUTHABEN_DATEI, MITGLIEDER_DATEI, artikelCsv, doppelteArtikelnamen, guthabenCsv, mitgliederCsv } from './umstieg.js';
 import { bestaetige, csvName, dateiname, el, fehlerZeile, herunterladen, hilfe, seiteMit, statusZeile, zeitText } from './dom.js';
 import { exportiereSicherung, dateiInhalt, importiere, vorherSichern } from './sicherung.js';
 import { PruefFehler } from './schema.js';
@@ -738,14 +738,24 @@ async function exporte() {
     block('Umstieg ins Vollsystem', 'Drei CSV-Dateien für den Import in ein leeres Ergo-Bibamus-Vollsystem.',
       el('p', {}, 'Vollsystem: ', el('a', { href: VOLLSYSTEM_URL, rel: 'noopener noreferrer' }, VOLLSYSTEM_URL)),
       el('div', { class: 'leiste' },
-        el('button', { type: 'button', class: 'zweit', onclick: sicher(async () => herunterladen(csvName(MITGLIEDER_DATEI), mitgliederCsv((await alleDaten(db())).mitglieder, /** @type {Projekt} */ (zustand.projekt)), 'text/csv')) }, MITGLIEDER_DATEI),
-        el('button', { type: 'button', class: 'zweit', onclick: sicher(async () => herunterladen(csvName(ARTIKEL_DATEI), artikelCsv((await alleDaten(db())).artikel), 'text/csv')) }, ARTIKEL_DATEI),
-        el('button', { type: 'button', class: 'zweit', onclick: sicher(async () => herunterladen(csvName(GUTHABEN_DATEI), guthabenCsv((await alleDaten(db())).mitglieder), 'text/csv')) }, GUTHABEN_DATEI),
+        el('button', { type: 'button', class: 'zweit', onclick: sicher(async () => herunterladen(csvName(MITGLIEDER_DATEI), mitgliederCsv((await umstiegDaten()).mitglieder, /** @type {Projekt} */ (zustand.projekt)), 'text/csv')) }, MITGLIEDER_DATEI),
+        el('button', { type: 'button', class: 'zweit', onclick: sicher(async () => herunterladen(csvName(ARTIKEL_DATEI), artikelCsv((await umstiegDaten()).artikel), 'text/csv')) }, ARTIKEL_DATEI),
+        el('button', { type: 'button', class: 'zweit', onclick: sicher(async () => herunterladen(csvName(GUTHABEN_DATEI), guthabenCsv((await umstiegDaten()).mitglieder), 'text/csv')) }, GUTHABEN_DATEI),
       ),
       hilfe('umstieg-ins-vollsystem', 'Umstieg')),
     fehler,
     status,
   );
+}
+
+/** Daten für den Umstieg; doppelte Artikelnamen würden im Vollsystem den Import abbrechen. */
+async function umstiegDaten() {
+  const daten = await alleDaten(db());
+  const doppelt = doppelteArtikelnamen(daten.artikel);
+  if (doppelt.length) {
+    throw new PruefFehler(`Umstieg nicht möglich: Das Vollsystem verlangt eindeutige Artikelnamen. Doppelt: ${doppelt.map((d) => `„${d.name}“ (Nr. ${d.ids.join(', ')})`).join('; ')}. Bitte unter Artikel umbenennen.`);
+  }
+  return daten;
 }
 
 /**

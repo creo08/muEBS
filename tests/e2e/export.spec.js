@@ -81,20 +81,20 @@ test('Umstiegs-CSV Byte für Byte wie erwartet: alle Mitglieder und Artikel, auc
   await starteMit(page, basis, daten());
   await page.goto(basis + '#/admin/exporte');
   await expect(page.getByRole('link', { name: 'https://github.com/relaxin101/barsystem' })).toHaveAttribute('href', 'https://github.com/relaxin101/barsystem');
-  for (const datei of ['mitglieder_v1.csv', 'artikel_v1.csv', 'guthaben_v1.csv']) {
+  for (const datei of ['mitglieder_v2.csv', 'artikel_v1.csv', 'guthaben_v1.csv']) {
     const d = await rohDownload(page, () => page.getByRole('button', { name: datei }).click());
     expect(d.name).toBe(datei);
     expect(d.bytes.equals(await readFile(new URL(datei, FIXTURES))), datei).toBe(true);
   }
 });
 
-test('Umstieg bei Schwärzung aus: Spalte schwaerzungs_grenze leer', async ({ page, basis }) => {
+test('Umstieg bei Schwärzung aus: mitglieder_v2.csv ohne Spalte schwaerzungs_grenze', async ({ page, basis }) => {
   const d = daten();
   d.projekt.schwaerzung_aktiv = false;
   await starteMit(page, basis, d);
   await page.goto(basis + '#/admin/exporte');
-  const m = await rohDownload(page, () => page.getByRole('button', { name: 'mitglieder_v1.csv' }).click());
-  expect(m.bytes.equals(await readFile(new URL('mitglieder_v1_ohne_grenze.csv', FIXTURES)))).toBe(true);
+  const m = await rohDownload(page, () => page.getByRole('button', { name: 'mitglieder_v2.csv' }).click());
+  expect(m.bytes.equals(await readFile(new URL('mitglieder_v2_ohne_grenze.csv', FIXTURES)))).toBe(true);
 });
 
 test('Leeres Projekt „Guthaben auf 0“: erst Abrechnung, dann Projekt; Gerät unverändert; Datei ladbar', async ({ page, basis }) => {
@@ -178,7 +178,7 @@ test('Demo: Dateinamen mit muebs_demo_ und "demo": true im Projekt', async ({ pa
   const p = await rohDownload(page, () => page.getByRole('button', { name: 'Projekt speichern' }).click());
   expect(p.name).toMatch(/^muebs_demo_projekt_\d{4}-\d{2}-\d{2}_\d{4}\.json$/);
   expect(JSON.parse(p.bytes.toString('utf8')).demo).toBe(true);
-  for (const datei of ['mitglieder_v1.csv', 'artikel_v1.csv', 'guthaben_v1.csv']) {
+  for (const datei of ['mitglieder_v2.csv', 'artikel_v1.csv', 'guthaben_v1.csv']) {
     const d = await rohDownload(page, () => page.getByRole('button', { name: datei }).click());
     expect(d.name).toBe(`muebs_demo_${datei}`);
   }

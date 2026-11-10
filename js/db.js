@@ -388,6 +388,17 @@ function pruefeArtikel(werte) {
 }
 
 /**
+ * Artikelnamen sind eindeutig (auch inaktive), sonst scheitert der Umstieg ins Vollsystem.
+ * @param {IDBObjectStore} s
+ * @param {string} name
+ * @param {number | null} eigeneId
+ */
+async function pruefeNameFrei(s, name, eigeneId) {
+  const gleich = /** @type {Artikel[]} */ (await anfrage(s.getAll())).find((a) => a.name === name && a.id !== eigeneId);
+  if (gleich) throw new Error(`Es gibt schon einen Artikel „${name}“ (Nr. ${gleich.id}${gleich.aktiv ? '' : ', inaktiv'})`);
+}
+
+/**
  * @param {IDBDatabase} db
  * @param {{name: string, preis: number, reihenfolge: number}} werte
  * @returns {Promise<number>}
@@ -396,6 +407,7 @@ export function neuerArtikel(db, werte) {
   pruefeArtikel(werte);
   return transaktion(db, ['artikel'], 'readwrite', async (tx) => {
     const s = tx.objectStore('artikel');
+    await pruefeNameFrei(s, werte.name, null);
     const id = await naechsteId(s);
     s.add({ id, name: werte.name, preis: werte.preis, reihenfolge: werte.reihenfolge, aktiv: true });
     return id;
@@ -412,6 +424,7 @@ export function aendereArtikel(db, id, werte) {
   return transaktion(db, ['artikel'], 'readwrite', async (tx) => {
     const s = tx.objectStore('artikel');
     if (!(await anfrage(s.get(id)))) throw new Error('Artikel nicht gefunden');
+    await pruefeNameFrei(s, werte.name, id);
     s.put({ id, name: werte.name, preis: werte.preis, reihenfolge: werte.reihenfolge, aktiv: werte.aktiv });
   });
 }

@@ -60,6 +60,6 @@ Kopfleiste → „Kassierliste“:
 
 ## Mitglieder und Artikel verwalten
 
-Admin-Bereich → „Mitglieder“ bzw. „Artikel“: eine Tabelle mit Suchfeld. Ein Tipp auf den Namen öffnet die Seite zum Bearbeiten (Name, Spitzname bzw. Preis und Reihenfolge, aktiv). „Neues Mitglied“ und „Neuer Artikel“ bleiben nach dem Anlegen offen, damit mehrere Einträge schnell hintereinander gehen. Gelöscht wird nie, nur deaktiviert; eine Nr. wird nie neu vergeben.
+Admin-Bereich → „Mitglieder“ bzw. „Artikel“: eine Tabelle mit Suchfeld. Ein Tipp auf den Namen öffnet die Seite zum Bearbeiten (Name, Spitzname bzw. Preis und Reihenfolge, aktiv). „Neues Mitglied“ und „Neuer Artikel“ bleiben nach dem Anlegen offen, damit mehrere Einträge schnell hintereinander gehen. Gelöscht wird nie, nur deaktiviert; eine Nr. wird nie neu vergeben. Artikelnamen sind eindeutig, auch gegenüber inaktiven Artikeln (das Vollsystem verlangt das beim Umstieg).
 
 Auf dem Tablet steht die Navigation des Admin-Bereichs links, auf dem Handy ist sie die Übersicht, und jede Unterseite hat „Zurück zum Admin-Bereich“.

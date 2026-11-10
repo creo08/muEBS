@@ -1,0 +1,7 @@
+﻿"id";"reihenfolge";"name";"preis";"aktiv";"typ"
+1;1;"Bier 0,5 l";3,50;1;"stueck"
+2;2;"Zuckerl";0,05;1;"stueck"
+3;3;"Fass „Spezial“ 50 l";1000,00;1;"stueck"
+4;4;"Wein; rot";2,80;0;"stueck"
+5;10;"Hühnersuppe 'Oma'";4,50;0;"stueck"
+6;5;"Gspritzter ""weiß""";3,00;1;"stueck"

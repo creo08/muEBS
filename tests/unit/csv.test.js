@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { abrechnungCsv, csvDatei, textFeld } from '../../js/csv.js';
-import { artikelCsv, guthabenCsv, mitgliederCsv, ARTIKEL_SPALTEN, GUTHABEN_SPALTEN, MITGLIEDER_SPALTEN } from '../../js/umstieg.js';
+import { artikelCsv, doppelteArtikelnamen, guthabenCsv, mitgliederCsv, ARTIKEL_SPALTEN, GUTHABEN_SPALTEN, MITGLIEDER_DATEI, MITGLIEDER_SPALTEN } from '../../js/umstieg.js';
 
 test('Textfeld: Anführungszeichen verdoppeln, Formelanfang mit \' entschärfen', () => {
   assert.equal(textFeld('a"b'), '"a""b"');
@@ -20,12 +20,14 @@ const mitglieder = [
 ];
 
 test('Umstieg: Spalten wie im Vollsystem', () => {
+  assert.equal(MITGLIEDER_DATEI, 'mitglieder_v2.csv');
   assert.deepEqual(MITGLIEDER_SPALTEN, ['id', 'name', 'nickname', 'aktiv', 'schwaerzungs_grenze']);
   assert.deepEqual(ARTIKEL_SPALTEN, ['id', 'reihenfolge', 'name', 'preis', 'aktiv', 'typ']);
   assert.deepEqual(GUTHABEN_SPALTEN, ['id', 'betrag']);
   const projekt = { farbschema: 'violett', modus: 'deckel', schwaerzung_aktiv: true, schwaerzungs_grenze: -2000 };
   assert.equal(mitgliederCsv(mitglieder, projekt), '\uFEFF"id";"name";"nickname";"aktiv";"schwaerzungs_grenze"\r\n1;"Alex";"";1;-20,00\r\n2;"Bente";"B";0;-20,00\r\n');
-  assert.match(mitgliederCsv(mitglieder, { ...projekt, schwaerzung_aktiv: false }), /\r\n1;"Alex";"";1;\r\n/);
+  // v2: bei Schwärzung aus fehlt die Spalte ganz, damit das Vollsystem seine globale Grenze nimmt
+  assert.equal(mitgliederCsv(mitglieder, { ...projekt, schwaerzung_aktiv: false }), '\uFEFF"id";"name";"nickname";"aktiv"\r\n1;"Alex";"";1\r\n2;"Bente";"B";0\r\n');
   assert.equal(artikelCsv([{ id: 3, name: 'Bier', preis: 350, reihenfolge: 2, aktiv: true }]), '\uFEFF"id";"reihenfolge";"name";"preis";"aktiv";"typ"\r\n3;2;"Bier";3,50;1;"stueck"\r\n');
   assert.equal(guthabenCsv(mitglieder), '\uFEFF"id";"betrag"\r\n1;-7,00\r\n');
 });
@@ -51,4 +53,10 @@ test('Abrechnung: guthaben, offen, bezahlt', () => {
   const zahlung = { id: 'z', geraet_id: 'g', typ: 'zahlung', mitglied_id: 2, artikel_id: null, storno_von: null, menge: 1, preis_pro_einheit: 300, gesamtpreis: 300, zeitstempel: '2026-01-01T10:00:00.000Z' };
   const csv = abrechnungCsv(mitglieder, [zahlung]);
   assert.equal(csv, '\uFEFF"id";"name";"nickname";"guthaben";"offen";"bezahlt"\r\n1;"Alex";"";-7,00;7,00;0,00\r\n2;"Bente";"B";0,00;0,00;3,00\r\n');
+});
+
+test('Umstieg: doppelte Artikelnamen werden erkannt (Vollsystem verlangt eindeutige Namen)', () => {
+  const a = (id, name, aktiv = true) => ({ id, name, preis: 100, reihenfolge: id, aktiv });
+  assert.deepEqual(doppelteArtikelnamen([a(1, 'Bier'), a(2, 'Limo'), a(3, 'Bier', false)]), [{ name: 'Bier', ids: [1, 3] }]);
+  assert.deepEqual(doppelteArtikelnamen([a(1, 'Bier'), a(2, 'bier')]), []);
 });
