@@ -23,7 +23,8 @@ Strichliste als Offline-Web-App für Vereins- und Verbindungsbars: Daten bleiben
 | [Sicherung und Projekt](docs/sicherung-und-projekt.md) | Sichern, Laden, leeres Projekt, Gerät zurücksetzen |
 | [Umstieg ins Vollsystem](docs/umstieg-ins-vollsystem.md) | CSV-Export, Excel, Import ins Vollsystem |
 | [Datensicherheit](docs/datensicherheit.md) | Datenschutzhinweis, PIN, Schwärzung, CSP |
-| [Entwicklung](docs/entwicklung.md) | Aufbau, Tests, Handprüfung vor dem Release |
+| [Entwicklung](docs/entwicklung.md) | Aufbau, Tests, Handprüfung vor dem Release, Weg zu v1.0.0 |
+| [Testprotokoll](docs/testprotokoll.md) | Feldtests vor v1.0.0 zum Ausfüllen |
 
 ## Umstieg ins Vollsystem
 

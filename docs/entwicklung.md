@@ -81,6 +81,24 @@ Playwright-WebKit ist nicht iOS Safari. Vor jedem Release auf einem echten iPhon
 5. **Laden:** Demo beenden, die Sicherung über „Sicherung/Projekt laden“ laden – erwartet wird die Ablehnung als Demo-Datei. Dann mit einer echten Sicherung wiederholen; Daten sind vollständig da.
 6. **Update:** Nach dem Deploy erscheint auf der Startseite „Neue Version – jetzt laden“; nach dem Tippen zeigt der Hinweis die neue Version.
 
+Ausführlich und zum Ausfüllen: [Testprotokoll](testprotokoll.md).
+
+## Weg zu v1.0.0
+
+`v1.0.0` ist das erste Major-Release. Es kommt, wenn
+
+1. das [Testprotokoll](testprotokoll.md) auf einem echten iPhone und einem Android-Gerät ohne offene Fehler ausgefüllt ist,
+2. der Umstieg mit echtem Excel und einem leeren Vollsystem geklappt hat (Abläufe 23 und 24),
+3. alle daraus folgenden Korrekturen gemergt sind und `ci` grün ist.
+
+Dann im Release-Workflow `major` wählen; aus `v0.x.y` wird `v1.0.0`.
+
+Ab `v1.0.0` gilt nach SemVer:
+
+- **Sicherung und leeres Projekt:** Jede 1.x-Version lädt Dateien mit `format` 1. Ein höheres `format` gibt es nur mit einem neuen Major-Release.
+- **Umstiegs-CSV:** Die Dateinamen tragen ihre Version (`mitglieder_v2.csv`, `artikel_v1.csv`, `guthaben_v1.csv`). Ändern sich Spalten, steigt die Version der Datei.
+- **Datenbank am Gerät:** Neue Datenbank-Versionen kommen mit einer Migration und der Frage „Vorher sichern?“; Daten gehen dabei nicht verloren.
+
 ## Git-Regeln
 
 - Autor und Committer nur `creo08 <285598642+creo08@users.noreply.github.com>`. Einzige Ausnahme: Merges über die GitHub-Oberfläche haben `GitHub <noreply@github.com>` als Committer; das lässt `scripts/cleanup.sh` zu. Pull Requests von Dependabot dürfen `dependabot[bot]` als Autor und Committer und dessen `Signed-off-by`-Zeile haben.

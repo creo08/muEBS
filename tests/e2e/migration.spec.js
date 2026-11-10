@@ -94,3 +94,18 @@ test('echte Migration von Version 1 (v0.1.0): Schwärzungs-Merker aus dem Verlau
   await page.getByLabel('Mitglied suchen').fill('Alex');
   await expect(page.locator('.kachel')).not.toHaveClass(/geschwaerzt/);
 });
+
+test('Wächter ruht, solange „Vorher sichern?“ auf eine Antwort wartet', async ({ page, basis }) => {
+  await starteMit(page, basis, projektDatei());
+  await hoehereVersion(page);
+  await page.clock.install();
+  await page.reload();
+  await expect(page.getByRole('dialog')).toContainText('Vorher sichern?');
+  // länger überlegen als der Wächter wartet
+  await page.clock.fastForward('00:30');
+  await expect(page.getByRole('heading', { name: 'µEBS kann nicht starten' })).toHaveCount(0);
+  await page.getByRole('dialog').getByRole('button', { name: 'Ohne Sicherung weiter' }).click();
+  await expect(page.getByRole('heading', { name: 'µEBS', exact: true })).toBeVisible();
+  await page.clock.fastForward('00:30');
+  await expect(page.getByRole('heading', { name: 'µEBS kann nicht starten' })).toHaveCount(0);
+});
