@@ -7,8 +7,22 @@
     "target": "es2022",
     "module": "es2022",
     "moduleResolution": "bundler",
-    "lib": ["es2022", "dom", "dom.iterable", "webworker"],
-    "skipLibCheck": true
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable",
+      "webworker"
+    ],
+    "skipLibCheck": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
   },
-  "include": ["js/**/*.js", "sw.js"]
+  "include": [
+    "js/**/*.js",
+    "sw.js"
+  ]
 }

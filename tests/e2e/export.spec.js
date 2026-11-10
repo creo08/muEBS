@@ -31,6 +31,7 @@ const zeilen = (text) => {
 test('Umstiegs-CSV mit den Spalten des Vollsystems und Schutz gegen Formel-Injection', async ({ page, basis }) => {
   await starteMit(page, basis, daten());
   await page.goto(basis + '#/admin/exporte');
+  await expect(page.getByRole('link', { name: 'https://github.com/relaxin101/barsystem' })).toHaveAttribute('href', 'https://github.com/relaxin101/barsystem');
   await expect(page.getByRole('link', { name: 'Hilfe: Umstieg' })).toHaveAttribute('href', /docs\/umstieg-ins-vollsystem\.md$/);
   const m = await download(page, () => page.getByRole('button', { name: 'mitglieder_v1.csv' }).click());
   expect(m.name).toBe('mitglieder_v1.csv');

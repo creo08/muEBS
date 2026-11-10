@@ -8,7 +8,7 @@ Das Format ist gegen Commit `6ef739e` des Vollsystems geprüft.
 
 ## 1. Dateien exportieren
 
-Admin-Bereich → „Exporte“ → „Umstieg ins Vollsystem“. Drei Knöpfe laden je eine Datei:
+Admin-Bereich → „Exporte“ → „Umstieg ins Vollsystem“. Dort steht auch die Adresse des Vollsystems. Drei Knöpfe laden je eine Datei:
 
 | Datei | Spalten | Inhalt |
 |---|---|---|

@@ -1,6 +1,6 @@
 // @ts-check
 // Admin-Bereich: Aufbuchung, Mitglieder, Artikel, Einstellungen, Laden, Exporte, Zurücksetzen.
-import { DB_DEMO, DB_ECHT, SCHEMEN, SPERRE_NACH_MS } from './konstanten.js';
+import { DB_DEMO, DB_ECHT, SCHEMEN, SPERRE_NACH_MS, VOLLSYSTEM_URL } from './konstanten.js';
 import { centText, euro, euroZuCent, saldoText } from './geld.js';
 import { nachName, textFehler, speicherFehlerText } from './regeln.js';
 import {
@@ -490,6 +490,7 @@ function exporte() {
     hilfe('sicherung-und-projekt', 'Leeres Projekt'),
     el('h2', {}, 'Umstieg ins Vollsystem'),
     el('p', {}, 'Drei CSV-Dateien für den Import in ein leeres Ergo-Bibamus-Vollsystem.'),
+    el('p', {}, 'Vollsystem: ', el('a', { href: VOLLSYSTEM_URL, rel: 'noopener noreferrer' }, VOLLSYSTEM_URL)),
     el('div', { class: 'leiste' },
       el('button', { type: 'button', onclick: sicher(async () => herunterladen(csvName(MITGLIEDER_DATEI), mitgliederCsv((await alleDaten(db())).mitglieder, /** @type {Projekt} */ (zustand.projekt)), 'text/csv')) }, MITGLIEDER_DATEI),
       el('button', { type: 'button', onclick: sicher(async () => herunterladen(csvName(ARTIKEL_DATEI), artikelCsv((await alleDaten(db())).artikel), 'text/csv')) }, ARTIKEL_DATEI),

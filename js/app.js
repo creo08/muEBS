@@ -524,6 +524,7 @@ function assistent() {
     },
   ];
   const s = schritte[entwurf.schritt];
+  if (!s) return; // Schritt liegt immer im Bereich, die Prüfung ist für den Typ
   const letzter = entwurf.schritt === schritte.length - 1;
   seite(
     `Neues Projekt – Schritt ${entwurf.schritt + 1} von ${schritte.length}`,
