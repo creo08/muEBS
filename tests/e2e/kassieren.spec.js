@@ -61,3 +61,19 @@ test('Vorauszahlung: kein Kassieren und keine Kassierliste', async ({ page, basi
   await expect(page.getByRole('heading', { name: 'Kassieren' })).toHaveCount(0);
   await expect(page.locator('#saldo')).toHaveText('0,00 €');
 });
+
+test('Kassierliste „bezahlt“ bucht den aktuellen offenen Betrag, nicht den beim Anzeigen', async ({ page, basis, context }) => {
+  await starteMit(page, basis, projektDatei({ modus: 'deckel', schwaerzung_aktiv: false }));
+  await bestelle(page, basis, ['Bier 3,50 €']);
+  await page.goto(basis + '#/kassierliste');
+  await expect(page.getByRole('row').filter({ hasText: 'Alex Beispiel' })).toContainText('offen 3,50 €');
+  // währenddessen bucht ein zweites Fenster noch eine Limo
+  const zweites = await context.newPage();
+  await bestelle(zweites, basis, ['Limo 2,50 €']);
+  await zweites.close();
+  await page.getByRole('button', { name: 'bezahlt' }).click();
+  await expect(page.getByRole('dialog')).toContainText('6,00 € von Alex Beispiel');
+  await page.getByRole('dialog').getByRole('button', { name: 'Bezahlt' }).click();
+  await expect(page.getByText('Niemand hat etwas offen.')).toBeVisible();
+  expect((await datenbank(page)).mitglieder[0].guthaben).toBe(0);
+});

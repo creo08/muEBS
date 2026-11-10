@@ -51,13 +51,23 @@ function zeigeFatal(text, rat = 'Bitte einen aktuellen Browser verwenden (iOS Sa
 const FENSTER_RAT = 'Bitte alle anderen µEBS-Fenster und Browser-Tabs schließen und µEBS neu laden.';
 
 
+/** Start-Wächter; ruht, solange die App auf eine Antwort wartet (z. B. „Vorher sichern?“). */
+let waechter = 0;
+const waechterStellen = () => {
+  clearTimeout(waechter);
+  waechter = setTimeout(() => zeigeFatal('µEBS wartet auf die Daten.', FENSTER_RAT), START_WARTEN_MS);
+};
+
 /** @type {import('./db.js').Haken} */
 const haken = {
   blockiert: () => zeigeFatal('Bitte andere µEBS-Fenster schließen', FENSTER_RAT),
   // Die Sicherung liest aus der alten Datenbank, solange zustand.db noch nicht gesetzt ist
   vorMigration: async (alt) => {
     zustand.db = alt;
-    return vorherSichern();
+    clearTimeout(waechter);
+    const weiter = await vorherSichern();
+    waechterStellen();
+    return weiter;
   },
 };
 
@@ -66,7 +76,7 @@ async function start() {
   if (fehlt.length) return zeigeFatal(`Diesem Browser fehlt: ${fehlt.join(', ')}.`);
   registriereServiceWorker().catch((f) => zeigeSwHinweis(`Offline-Betrieb nicht verfügbar: ${f instanceof Error ? f.message : String(f)}`));
   // Wächter: wartet das Öffnen der Daten zu lange (z. B. auf ein anderes Fenster), klare Meldung statt „wird geladen“
-  const waechter = setTimeout(() => zeigeFatal('µEBS wartet auf die Daten.', FENSTER_RAT), START_WARTEN_MS);
+  waechterStellen();
   try {
     zustand.echt = await oeffne(DB_ECHT, haken);
     zustand.db = zustand.echt;
@@ -473,9 +483,15 @@ async function kassierliste() {
         el('td', { class: 't-aktion' }, el('button', {
           type: 'button',
           onclick: async () => {
-            if (!(await bestaetige(`${euro(-m.guthaben)} von ${m.name} als bezahlt buchen?`, 'Bezahlt'))) return;
+            // aktuellen Stand lesen: seit dem Anzeigen kann gebucht worden sein (z. B. in einem anderen Fenster)
+            const frisch = await ladeMitglied(db(), m.id);
+            if (!frisch || frisch.guthaben >= 0) {
+              await kassierliste();
+              return;
+            }
+            if (!(await bestaetige(`${euro(-frisch.guthaben)} von ${m.name} als bezahlt buchen?`, 'Bezahlt'))) return;
             try {
-              await bucheBetrag(db(), zustand.geraet, m.id, 'zahlung', -m.guthaben);
+              await bucheBetrag(db(), zustand.geraet, m.id, 'zahlung', -frisch.guthaben);
               await kassierliste();
             } catch (f) {
               fehler.textContent = speicherFehlerText(f);
