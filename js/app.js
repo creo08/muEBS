@@ -45,7 +45,11 @@ function zeigeFatal(text) {
 /** @type {import('./db.js').Haken} */
 const haken = {
   blockiert: () => zeigeFatal('Bitte andere µEBS-Fenster schließen'),
-  vorMigration: async () => vorherSichern(),
+  // Die Sicherung liest aus der alten Datenbank, solange zustand.db noch nicht gesetzt ist
+  vorMigration: async (alt) => {
+    zustand.db = alt;
+    return vorherSichern();
+  },
 };
 
 async function start() {
@@ -62,8 +66,9 @@ async function start() {
   } catch (f) {
     return zeigeFatal(`Die Daten können nicht geöffnet werden: ${f instanceof Error ? f.message : String(f)}`);
   }
-  if (navigator.storage && typeof navigator.storage.persist === 'function' && !(await navigator.storage.persisted())) {
-    navigator.storage.persist().catch(() => undefined);
+  // nicht abwarten: ein Fehler hier darf den Start nie blockieren
+  if (navigator.storage && typeof navigator.storage.persist === 'function') {
+    navigator.storage.persisted().then((ja) => ja || navigator.storage.persist()).catch(() => undefined);
   }
   for (const ereignis of ['pointerdown', 'keydown', 'input']) document.addEventListener(ereignis, () => { zustand.letzteEingabe = Date.now(); }, { capture: true });
   // Sperre nach 5 Minuten ohne Eingabe auch ohne Seitenwechsel
@@ -572,9 +577,10 @@ async function starteDemo() {
     const juengste = Math.max(...datei.buchungen.map((b) => Date.parse(b.zeitstempel)));
     const versatz = Date.now() - 60000 - juengste;
     for (const b of datei.buchungen) b.zeitstempel = new Date(Date.parse(b.zeitstempel) + versatz).toISOString();
-    await geraetSchreiben(/** @type {IDBDatabase} */ (zustand.echt), 'demo_aktiv', true);
     const demo = await oeffne(DB_DEMO, haken);
     await ersetze(demo, datei);
+    // Merker erst nach erfolgreichem Schreiben, sonst landet ein echtes Projekt in der Demo
+    await geraetSchreiben(/** @type {IDBDatabase} */ (zustand.echt), 'demo_aktiv', true);
     zustand.db = demo;
     zustand.demo = true;
     zustand.geraet = await geraetId(demo);

@@ -30,7 +30,7 @@ async function pinHash(pin, salz) {
 }
 
 /** PIN-Hash liegt nur im Store „geraet“, nie in Projekt oder Export. */
-export async function pinGesetzt() {
+async function pinGesetzt() {
   return Boolean(await geraetLesen(db(), 'pin'));
 }
 
@@ -192,7 +192,7 @@ async function aufbuchung() {
 }
 
 /** Mitglieder anlegen und ändern. Gelöscht wird nie, nur deaktiviert. */
-export async function mitgliederVerwaltung() {
+async function mitgliederVerwaltung() {
   const bereich = el('section', { class: 'verwaltung', 'aria-labelledby': 'mv-titel' });
   const fehler = fehlerZeile();
   const status = statusZeile();
@@ -253,7 +253,7 @@ export async function mitgliederVerwaltung() {
 }
 
 /** Artikel anlegen und ändern. Gelöscht wird nie, nur deaktiviert. */
-export async function artikelVerwaltung() {
+async function artikelVerwaltung() {
   const bereich = el('section', { class: 'verwaltung', 'aria-labelledby': 'av-titel' });
   const fehler = fehlerZeile();
   const status = statusZeile();

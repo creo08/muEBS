@@ -32,4 +32,3 @@ export const SCHEMEN = [
 ];
 
 export const REPO_URL = 'https://github.com/creo08/muEBS';
-export const VOLLSYSTEM_URL = 'https://github.com/relaxin101/barsystem';

@@ -55,12 +55,14 @@ function transaktion(db, stores, modus, arbeit) {
 }
 
 /**
- * Schema-Migration, nur hier und nur in onupgradeneeded.
+ * Schema-Migration, nur hier und nur in onupgradeneeded. Jeder Schritt läuft nur bis zur Zielversion,
+ * denn eine neue Datenbank wird zuerst ohne Versionsangabe (also als Version 1) angelegt.
  * @param {IDBDatabase} db
  * @param {number} alt
+ * @param {number} neu
  */
-function migriere(db, alt) {
-  if (alt < 1) {
+function migriere(db, alt, neu) {
+  if (alt < 1 && neu >= 1) {
     db.createObjectStore('geraet');
     db.createObjectStore('projekt');
     db.createObjectStore('mitglied', { keyPath: 'id' });
@@ -69,7 +71,7 @@ function migriere(db, alt) {
     buchung.createIndex('mitglied_id', 'mitglied_id');
     buchung.createIndex('zeitstempel', 'zeitstempel');
   }
-  // Spätere Versionen: if (alt < 2) { … }
+  // Spätere Versionen: if (alt < 2 && neu >= 2) { … }
 }
 
 /**
@@ -87,7 +89,7 @@ function migriere(db, alt) {
 function oeffneRoh(name, version, haken) {
   return new Promise((ok, nein) => {
     const r = version === undefined ? indexedDB.open(name) : indexedDB.open(name, version);
-    r.onupgradeneeded = (e) => migriere(r.result, e.oldVersion);
+    r.onupgradeneeded = (e) => migriere(r.result, e.oldVersion, e.newVersion ?? 1);
     r.onblocked = haken.blockiert;
     r.onerror = () => nein(r.error);
     r.onsuccess = () => {

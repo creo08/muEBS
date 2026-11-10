@@ -127,8 +127,3 @@ export function csvName(name) {
 export function zeitText(iso) {
   return new Date(iso).toLocaleString('de-AT', { dateStyle: 'short', timeStyle: 'short' });
 }
-
-/** @param {HTMLInputElement | HTMLSelectElement} feld @param {string} text */
-export function beschriftet(feld, text) {
-  return [el('label', { for: feld.id }, text), feld];
-}
