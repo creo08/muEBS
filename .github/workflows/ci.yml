@@ -4,6 +4,8 @@ name: CI
 on:
   pull_request:
     branches: [main]
+    # edited: eine Korrektur am PR-Text startet die Prüfung neu
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
 
@@ -19,6 +21,9 @@ jobs:
     name: ci
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: Code holen (ganze Historie für cleanup.sh)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,10 +60,13 @@ jobs:
       - name: PR-Titel und -Text ohne Sitzungs-Links
         if: github.event_name == 'pull_request'
         env:
-          PR_TITEL: ${{ github.event.pull_request.title }}
-          PR_TEXT: ${{ github.event.pull_request.body }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMMER: ${{ github.event.pull_request.number }}
         run: |
-          if printf '%s\n%s\n' "$PR_TITEL" "$PR_TEXT" | grep -inE 'claude\.ai/code/sessio[n]_|Claude-Sessio[n]:|Co-Authored-B[y]:'; then
+          # aktuellen Stand lesen, nicht den Stand zum Zeitpunkt des Ereignisses
+          gh pr view "$PR_NUMMER" --json title,body --jq '.title, .body' > "$RUNNER_TEMP/pr.txt"
+          if grep -inE 'claude\.ai/code/sessio[n]_|Claude-Sessio[n]:|Co-Authored-B[y]:' "$RUNNER_TEMP/pr.txt"; then
             echo "::error::PR-Titel oder -Text enthält einen Sitzungs-Link oder eine Mitautor-Zeile."
             exit 1
           fi
