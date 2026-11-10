@@ -1,0 +1,64 @@
+# Prüfung jedes Pull Requests auf main und jedes Pushs auf main.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Code holen (ganze Historie für cleanup.sh)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Kopf des PR statt des von GitHub erzeugten Merge-Commits prüfen
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Node.js aus .nvmrc
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Typprüfung
+        run: npx tsc --noEmit
+
+      - name: Unit-Tests
+        run: node --test tests/unit/
+
+      - name: Playwright-Browser
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: E2E-Tests (Chromium und WebKit)
+        run: npx playwright test
+
+      - name: cleanup.sh
+        run: bash scripts/cleanup.sh
+
+      - name: PR-Titel und -Text ohne Sitzungs-Links
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITEL: ${{ github.event.pull_request.title }}
+          PR_TEXT: ${{ github.event.pull_request.body }}
+        run: |
+          if printf '%s\n%s\n' "$PR_TITEL" "$PR_TEXT" | grep -inE 'claude\.ai/code/sessio[n]_|Claude-Sessio[n]:|Co-Authored-B[y]:'; then
+            echo "::error::PR-Titel oder -Text enthält einen Sitzungs-Link oder eine Mitautor-Zeile."
+            exit 1
+          fi
