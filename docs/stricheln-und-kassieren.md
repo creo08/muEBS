@@ -1,6 +1,6 @@
 # Stricheln und Kassieren
 
-*Art: Anleitung. Für den Betrieb am Tresen.*
+*Art: Anleitung. Für den Betrieb an der Schank.*
 
 ## Die beiden Modi
 

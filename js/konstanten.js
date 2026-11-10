@@ -11,6 +11,8 @@ export const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
 
 export const HOTLIST_TAGE = 14;
 export const SPERRE_NACH_MS = 5 * 60 * 1000;
+/** Danach zeigt der Start eine Meldung statt weiter „wird geladen“. */
+export const START_WARTEN_MS = 10000;
 export const KASSIERTAG_STUNDE = 6;
 export const BUCHUNGEN_ANZEIGE = 10;
 

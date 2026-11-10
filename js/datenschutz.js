@@ -11,7 +11,7 @@ export function datenschutzInhalt() {
       el('li', {}, 'Die App liegt auf GitHub Pages. GitHub protokolliert beim Laden der App die IP-Adresse.'),
       el('li', {}, 'µEBS nutzt keine Analytics, kein Tracking und sendet keine Fehlerberichte.'),
       el('li', {}, 'Der PIN ist nur ein Bedienschutz, kein Schutz der Daten.'),
-      el('li', {}, 'Eine geschwärzte Kachel sehen alle, die am Tresen stehen.'),
+      el('li', {}, 'Eine geschwärzte Kachel sehen alle, die an der Schank stehen.'),
     ),
     hilfe('datensicherheit', 'Datensicherheit'),
   ];

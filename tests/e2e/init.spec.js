@@ -79,5 +79,5 @@ test('Datenschutz ist von der Init-Seite und aus dem Admin-Bereich erreichbar', 
   await starteMit(page, basis, projektDatei());
   await page.getByRole('link', { name: 'Admin-Bereich' }).click();
   await page.getByRole('link', { name: 'Datenschutz' }).click();
-  await expect(page.getByText('Eine geschwärzte Kachel sehen alle, die am Tresen stehen.')).toBeVisible();
+  await expect(page.getByText('Eine geschwärzte Kachel sehen alle, die an der Schank stehen.')).toBeVisible();
 });

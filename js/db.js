@@ -154,13 +154,15 @@ export async function oeffne(name, haken) {
 
 /**
  * @param {string} name
+ * @param {() => void} blockiert ein anderes Fenster hält die Datenbank noch offen; das Löschen wartet darauf
  * @returns {Promise<void>}
  */
-export function loescheDb(name) {
+export function loescheDb(name, blockiert) {
   return new Promise((ok, nein) => {
     const r = indexedDB.deleteDatabase(name);
     r.onsuccess = () => ok();
     r.onerror = () => nein(r.error);
+    r.onblocked = blockiert;
   });
 }
 

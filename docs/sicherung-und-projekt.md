@@ -40,6 +40,8 @@ Dateiname: `muebs_projekt_JJJJ-MM-TT_HHMM.json`. Laden wie eine Sicherung.
 
 Admin-Bereich → „Gerät zurücksetzen“. µEBS schlägt eine Sicherung vor und fragt zweimal nach. Danach sind alle Daten, die Demo und der PIN gelöscht, und das Gerät bekommt eine neue Kennung.
 
+Ist µEBS noch in einem anderen Fenster oder Browser-Tab offen, kann das Löschen nicht weiter. µEBS meldet dann „Bitte andere µEBS-Fenster und Browser-Tabs schließen“ und macht von selbst weiter, sobald sie zu sind. Kommt µEBS beim Start nicht an die Daten, erscheint nach 10 Sekunden „µEBS wartet auf die Daten“ mit dem Knopf „Neu laden“.
+
 ## Datenerhalt
 
 - µEBS bittet den Browser um dauerhaften Speicher; den Status zeigen die [Einstellungen](einstellungen.md).
