@@ -12,9 +12,11 @@ Admin-Bereich → „Exporte“ → „Umstieg ins Vollsystem“. Dort steht auc
 
 | Datei | Spalten | Inhalt |
 |---|---|---|
-| `mitglieder_v1.csv` | `id;name;nickname;aktiv;schwaerzungs_grenze` | Alle Mitglieder. `schwaerzungs_grenze` ist die globale Grenze in Euro, wenn die Schwärzung ein ist; leer, wenn aus (im Vollsystem „Kein Limit“). |
-| `artikel_v1.csv` | `id;reihenfolge;name;preis;aktiv;typ` | Alle Artikel, Preis in Euro, `typ` immer `stueck`. |
-| `guthaben_v1.csv` | `id;betrag` | Nur Mitglieder mit Saldo ≠ 0; `betrag` ist der Saldo, auch negativ. |
+| `mitglieder_v1.csv` | `id;name;nickname;aktiv;schwaerzungs_grenze` | Alle Mitglieder, auch inaktive (`aktiv` 0). `schwaerzungs_grenze` ist die globale Grenze in Euro, wenn die Schwärzung ein ist; leer, wenn aus (im Vollsystem „Kein Limit“). |
+| `artikel_v1.csv` | `id;reihenfolge;name;preis;aktiv;typ` | Alle Artikel, auch inaktive (`aktiv` 0), Preis in Euro, `typ` immer `stueck`. |
+| `guthaben_v1.csv` | `id;betrag` | Nur Mitglieder mit Saldo ≠ 0 (auch inaktive); `betrag` ist der Saldo, auch negativ. |
+
+Ein Knopf lädt genau eine Datei, es gibt kein ZIP. In der Demo heißen die Dateien `muebs_demo_mitglieder_v1.csv` usw.
 
 Alle Dateien: Semikolon als Trenner, UTF-8 mit BOM, Euro mit Dezimalkomma, `aktiv` als 1/0, Zeilenende CRLF. Textfelder stehen in Anführungszeichen; beginnt ein Text mit `=`, `+`, `-`, `@`, Tab oder CR, steht ein `'` davor.
 
@@ -30,9 +32,12 @@ Das Vollsystem liest Excel-Dateien.
 
 ## 3. Ins Vollsystem importieren
 
-1. Im Vollsystem zuerst Mitglieder, dann Artikel importieren.
-2. Im Import-Formular des Vollsystems die **Spaltennamen unverändert lassen** – sie passen bereits.
-3. Zuletzt die Guthaben importieren: Spalte Mitglied-ID `id`, Spalte Aufbuchung `betrag`. Das Vollsystem bucht die Beträge summativ auf.
+Reihenfolge: **Mitglieder, Artikel, Guthaben**.
+
+1. Mitglieder importieren (`mitglieder_v1.xlsx`).
+2. Artikel importieren (`artikel_v1.xlsx`).
+   Im Import-Formular des Vollsystems die **Spaltennamen unverändert lassen** – sie passen bereits.
+3. Zuletzt die Guthaben importieren (`guthaben_v1.xlsx`): Spalte Mitglied-ID `id`, Spalte Aufbuchung `betrag`. Das Vollsystem bucht die Beträge summativ auf.
 4. Stichprobe: Einige Salden im Vollsystem mit µEBS vergleichen.
 
 ## Was nicht übernommen wird

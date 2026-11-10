@@ -29,12 +29,36 @@ Abgelehnt werden u. a.:
 
 ## Leeres Projekt (z. B. neues Semester)
 
-Admin-Bereich → „Exporte“ → „Leeres Projekt exportieren“. Das Projekt enthält Mitglieder, Artikel und Einstellungen, aber keine Buchungen. µEBS fragt:
+Admin-Bereich → „Exporte“ → „Leeres Projekt“. Das leere Projekt ist **nur ein Export**: Die Daten an diesem Gerät bleiben unverändert. Erst wer die Datei lädt (hier oder auf einem anderen Gerät), ersetzt damit die Daten.
 
-- **Guthaben auf 0 setzen** – alle starten bei 0. Zusätzlich wird `abrechnung_v1.csv` heruntergeladen: pro Person `guthaben`, `offen` und `bezahlt` (Summe der Zahlungen im Projekt).
-- **Guthaben übernehmen** – je Mitglied mit Saldo ≠ 0 entsteht eine Buchung „Übertrag“.
+Die Datei enthält alle Mitglieder und Artikel (auch inaktive) und die Einstellungen. Zuerst die Variante wählen:
+
+### Guthaben auf 0 setzen (mit Abrechnung)
+
+Alle Mitglieder starten mit Guthaben 0, die Datei enthält keine Buchungen. Damit offene Beträge nicht verloren gehen, gibt es dazu eine Abrechnung:
+
+1. **„Abrechnung speichern“** lädt `abrechnung_v1.csv` herunter.
+2. Erst danach wird **„Projekt speichern“** aktiv und lädt die Projektdatei herunter. Beide Dateien entstehen aus demselben Datenstand.
+
+Zwei getrennte Knöpfe, weil iOS pro Tipp nur einen Download zulässt. Wer die Variante wechselt, muss die Abrechnung neu speichern.
+
+`abrechnung_v1.csv` hat die Spalten `id;name;nickname;guthaben;offen;bezahlt`:
+
+| Spalte | Inhalt |
+|---|---|
+| `guthaben` | der Saldo (Summe aller nicht stornierten Buchungen) |
+| `offen` | der offene Betrag, wenn der Saldo unter 0 liegt, sonst 0,00 |
+| `bezahlt` | Summe der nicht stornierten Zahlungen (Kassieren) im Projekt |
+
+Format wie beim [Umstieg](umstieg-ins-vollsystem.md): Semikolon, UTF-8 mit BOM, Euro mit Dezimalkomma, Zeilenende CRLF, Textfelder geschützt.
+
+### Guthaben übernehmen
+
+**„Projekt speichern“** lädt die Projektdatei herunter. Je Mitglied mit Saldo ≠ 0 enthält sie eine Buchung „Übertrag“ über genau diesen Saldo (mit dem Zeitpunkt des Exports); das Guthaben im neuen Projekt ist damit gleich. Ein Übertrag lässt sich wie jede Buchung stornieren.
 
 Dateiname: `muebs_projekt_JJJJ-MM-TT_HHMM.json`. Laden wie eine Sicherung.
+
+In der Demo heißen die Dateien `muebs_demo_projekt_…json` und `muebs_demo_abrechnung_v1.csv`; die Projektdatei trägt `"demo": true` und lässt sich nicht als echte Daten laden.
 
 ## Gerät zurücksetzen
 

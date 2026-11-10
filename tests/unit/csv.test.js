@@ -30,6 +30,23 @@ test('Umstieg: Spalten wie im Vollsystem', () => {
   assert.equal(guthabenCsv(mitglieder), '\uFEFF"id";"betrag"\r\n1;-7,00\r\n');
 });
 
+test('Formel-Injection: alle CSV-Erzeuger entschärfen gefährliche Textanfänge', () => {
+  const boese = ['=HYPERLINK("x")', '+1', '-1+1', '@SUMME(A1)', '\tTab', '\rCR'];
+  const projekt = { farbschema: 'violett', modus: 'deckel', schwaerzung_aktiv: false, schwaerzungs_grenze: 0 };
+  // an der Eingabe und beim Import sind solche Texte verboten; die CSV schützt trotzdem als zweite Linie
+  const ms = boese.map((t, i) => ({ id: i + 1, name: t, nickname: t, aktiv: true, guthaben: -100, geschwaerzt: false }));
+  const as = boese.map((t, i) => ({ id: i + 1, name: t, preis: 100, reihenfolge: i, aktiv: true }));
+  for (const [name, csv] of [['mitglieder', mitgliederCsv(ms, projekt)], ['artikel', artikelCsv(as)], ['abrechnung', abrechnungCsv(ms, [])]]) {
+    for (const t of boese) {
+      const maskiert = '"\'' + t.replaceAll('"', '""') + '"';
+      assert.ok(csv.includes(maskiert), `${name}: ${JSON.stringify(t)}`);
+      assert.ok(!csv.includes(';"' + t.replaceAll('"', '""') + '"'), `${name}: ${JSON.stringify(t)} unmaskiert`);
+    }
+  }
+  // guthaben_v1.csv hat nur Zahlenfelder aus dem Code: id und Betrag
+  assert.match(guthabenCsv(ms), /^\uFEFF"id";"betrag"\r\n(\d+;-?\d+,\d\d\r\n)+$/);
+});
+
 test('Abrechnung: guthaben, offen, bezahlt', () => {
   const zahlung = { id: 'z', geraet_id: 'g', typ: 'zahlung', mitglied_id: 2, artikel_id: null, storno_von: null, menge: 1, preis_pro_einheit: 300, gesamtpreis: 300, zeitstempel: '2026-01-01T10:00:00.000Z' };
   const csv = abrechnungCsv(mitglieder, [zahlung]);
