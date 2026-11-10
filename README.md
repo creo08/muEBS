@@ -27,7 +27,7 @@ Strichliste als Offline-Web-App für Vereins- und Verbindungsbars: Daten bleiben
 
 ## Umstieg ins Vollsystem
 
-Unter „Exporte“ erzeugt µEBS `mitglieder_v1.csv`, `artikel_v1.csv` und `guthaben_v1.csv` im Format von Ergo Bibamus. Die Dateien in Excel öffnen, als `.xlsx` speichern und im Vollsystem mit unveränderten Spaltennamen importieren.
+Unter „Exporte“ erzeugt µEBS `mitglieder_v2.csv`, `artikel_v1.csv` und `guthaben_v1.csv` im Format von Ergo Bibamus. Die Dateien in Excel öffnen, als `.xlsx` speichern und im Vollsystem mit unveränderten Spaltennamen importieren.
 
 > **Warnung:** Nur in ein **leeres** Vollsystem importieren. Die Guthaben werden dort zusätzlich aufgebucht; in einem befüllten System entstehen falsche Salden.
 

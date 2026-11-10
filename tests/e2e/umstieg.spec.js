@@ -19,7 +19,7 @@ for (const schwaerzung of ['ein', 'aus']) {
     daten.projekt.schwaerzung_aktiv = schwaerzung === 'ein';
     await starteMit(page, basis, daten);
     await page.goto(basis + '#/admin/exporte');
-    for (const datei of ['mitglieder_v1.csv', 'artikel_v1.csv', 'guthaben_v1.csv']) {
+    for (const datei of ['mitglieder_v2.csv', 'artikel_v1.csv', 'guthaben_v1.csv']) {
       const d = await lade(page, datei);
       const erwartet = await readFile(new URL(`../fixtures/umstieg-grenzfaelle/${schwaerzung}/${datei}`, import.meta.url));
       expect(d.bytes.equals(erwartet), `${schwaerzung}/${datei}`).toBe(true);
@@ -50,7 +50,7 @@ test('Umstieg mit doppelten Artikelnamen (z. B. aus einer alten Sicherung): klar
   await page.goto(basis + '#/admin/exporte');
   let downloads = 0;
   page.on('download', () => { downloads++; });
-  for (const datei of ['mitglieder_v1.csv', 'artikel_v1.csv', 'guthaben_v1.csv']) {
+  for (const datei of ['mitglieder_v2.csv', 'artikel_v1.csv', 'guthaben_v1.csv']) {
     await page.getByRole('button', { name: datei }).click();
     await expect(page.getByRole('alert')).toContainText('Doppelt: „Bier“ (Nr. 1, 3)');
   }

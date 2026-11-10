@@ -8,10 +8,11 @@ import { csvDatei, textFeld } from './csv.js';
 /** @typedef {import('./regeln.js').Artikel} Artikel */
 /** @typedef {import('./regeln.js').Projekt} Projekt */
 
-export const MITGLIEDER_DATEI = 'mitglieder_v1.csv';
+export const MITGLIEDER_DATEI = 'mitglieder_v2.csv';
 export const ARTIKEL_DATEI = 'artikel_v1.csv';
 export const GUTHABEN_DATEI = 'guthaben_v1.csv';
 
+/** schwaerzungs_grenze nur bei Schwärzung ein, siehe mitgliederCsv() */
 export const MITGLIEDER_SPALTEN = ['id', 'name', 'nickname', 'aktiv', 'schwaerzungs_grenze'];
 export const ARTIKEL_SPALTEN = ['id', 'reihenfolge', 'name', 'preis', 'aktiv', 'typ'];
 export const GUTHABEN_SPALTEN = ['id', 'betrag'];
@@ -33,14 +34,18 @@ export function doppelteArtikelnamen(artikel) {
 const aktiv = (wert) => (wert ? '1' : '0');
 
 /**
- * Grenze global in Euro, wenn Schwärzung ein; sonst leer. Bei neuen Mitgliedern setzt das Vollsystem für leer
- * seine globale Grenze (MINDEST_GUTHABEN); nur ohne diese gilt dort kein Limit.
+ * mitglieder_v2.csv: Die Spalte schwaerzungs_grenze gibt es nur bei Schwärzung ein (Grenze aus µEBS in Euro).
+ * Bei Schwärzung aus fehlt sie ganz: Neue Mitglieder bekommen im Vollsystem dann seine globale Grenze
+ * (MINDEST_GUTHABEN), vorhandene behalten ihre. Eine leere Zelle würde die Grenze vorhandener Mitglieder löschen (v1).
  * @param {Mitglied[]} mitglieder
  * @param {Projekt} projekt
  */
 export function mitgliederCsv(mitglieder, projekt) {
-  const grenze = projekt.schwaerzung_aktiv ? centText(projekt.schwaerzungs_grenze) : '';
-  return csvDatei(MITGLIEDER_SPALTEN, mitglieder.map((m) => [String(m.id), textFeld(m.name), textFeld(m.nickname), aktiv(m.aktiv), grenze]));
+  const mitGrenze = projekt.schwaerzung_aktiv;
+  return csvDatei(
+    mitGrenze ? MITGLIEDER_SPALTEN : MITGLIEDER_SPALTEN.filter((s) => s !== 'schwaerzungs_grenze'),
+    mitglieder.map((m) => [String(m.id), textFeld(m.name), textFeld(m.nickname), aktiv(m.aktiv), ...(mitGrenze ? [centText(projekt.schwaerzungs_grenze)] : [])]),
+  );
 }
 
 /** @param {Artikel[]} artikel */

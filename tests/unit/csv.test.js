@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { abrechnungCsv, csvDatei, textFeld } from '../../js/csv.js';
-import { artikelCsv, doppelteArtikelnamen, guthabenCsv, mitgliederCsv, ARTIKEL_SPALTEN, GUTHABEN_SPALTEN, MITGLIEDER_SPALTEN } from '../../js/umstieg.js';
+import { artikelCsv, doppelteArtikelnamen, guthabenCsv, mitgliederCsv, ARTIKEL_SPALTEN, GUTHABEN_SPALTEN, MITGLIEDER_DATEI, MITGLIEDER_SPALTEN } from '../../js/umstieg.js';
 
 test('Textfeld: Anführungszeichen verdoppeln, Formelanfang mit \' entschärfen', () => {
   assert.equal(textFeld('a"b'), '"a""b"');
@@ -20,12 +20,14 @@ const mitglieder = [
 ];
 
 test('Umstieg: Spalten wie im Vollsystem', () => {
+  assert.equal(MITGLIEDER_DATEI, 'mitglieder_v2.csv');
   assert.deepEqual(MITGLIEDER_SPALTEN, ['id', 'name', 'nickname', 'aktiv', 'schwaerzungs_grenze']);
   assert.deepEqual(ARTIKEL_SPALTEN, ['id', 'reihenfolge', 'name', 'preis', 'aktiv', 'typ']);
   assert.deepEqual(GUTHABEN_SPALTEN, ['id', 'betrag']);
   const projekt = { farbschema: 'violett', modus: 'deckel', schwaerzung_aktiv: true, schwaerzungs_grenze: -2000 };
   assert.equal(mitgliederCsv(mitglieder, projekt), '\uFEFF"id";"name";"nickname";"aktiv";"schwaerzungs_grenze"\r\n1;"Alex";"";1;-20,00\r\n2;"Bente";"B";0;-20,00\r\n');
-  assert.match(mitgliederCsv(mitglieder, { ...projekt, schwaerzung_aktiv: false }), /\r\n1;"Alex";"";1;\r\n/);
+  // v2: bei Schwärzung aus fehlt die Spalte ganz, damit das Vollsystem seine globale Grenze nimmt
+  assert.equal(mitgliederCsv(mitglieder, { ...projekt, schwaerzung_aktiv: false }), '\uFEFF"id";"name";"nickname";"aktiv"\r\n1;"Alex";"";1\r\n2;"Bente";"B";0\r\n');
   assert.equal(artikelCsv([{ id: 3, name: 'Bier', preis: 350, reihenfolge: 2, aktiv: true }]), '\uFEFF"id";"reihenfolge";"name";"preis";"aktiv";"typ"\r\n3;2;"Bier";3,50;1;"stueck"\r\n');
   assert.equal(guthabenCsv(mitglieder), '\uFEFF"id";"betrag"\r\n1;-7,00\r\n');
 });
