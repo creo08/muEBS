@@ -6,7 +6,7 @@ Alle Daten liegen nur in diesem Browser auf diesem Gerät. µEBS sichert nicht a
 
 ## Sicherung exportieren
 
-- Startseite → „Sicherung exportieren“ (ohne PIN), oder Admin-Bereich → „Exporte“.
+- Kopfleiste → „Sicherung“ (ohne PIN, auf jeder Seite), oder Admin-Bereich → „Exporte“ → „Sicherung herunterladen“.
 - Dateiname: `muebs_sicherung_JJJJ-MM-TT_HHMM.json`.
 - Enthält Projekt-Einstellungen, Mitglieder, Artikel und alle Buchungen – aber nie den PIN und nie die Geräte-Kennung.
 

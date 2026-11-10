@@ -29,6 +29,19 @@ export function fehlerZeile() {
   return el('p', { class: 'fehler', role: 'alert' });
 }
 
+let meldungZeit = 0;
+
+/**
+ * Kurze Meldung unter der Kopfleiste (role="status"), verschwindet nach einigen Sekunden.
+ * @param {string} text
+ */
+export function melde(text) {
+  const m = /** @type {HTMLElement} */ (document.getElementById('meldung'));
+  m.textContent = text;
+  clearTimeout(meldungZeit);
+  meldungZeit = setTimeout(() => { m.textContent = ''; }, 5000);
+}
+
 /** Statuszeile für Erfolgsmeldungen. */
 export function statusZeile() {
   return el('p', { class: 'status', role: 'status' });
@@ -42,8 +55,20 @@ let letzterTitel = '';
  * @param {...Kind} kinder
  */
 export function seite(titel, ...kinder) {
+  seiteMit({ titel }, ...kinder);
+}
+
+/**
+ * Wie seite(), mit Optionen: art setzt das Layout von <main>, verborgen versteckt die Überschrift
+ * nur optisch (sie bleibt für Screenreader).
+ * @param {{titel: string, art?: string, verborgen?: boolean}} o
+ * @param {...Kind} kinder
+ */
+export function seiteMit(o, ...kinder) {
+  const titel = o.titel;
   const main = /** @type {HTMLElement} */ (document.getElementById('inhalt'));
-  const h1 = el('h1', { tabindex: -1 }, titel);
+  main.className = o.art ?? '';
+  const h1 = el('h1', { tabindex: -1, class: o.verborgen ? 'sr' : '' }, titel);
   main.replaceChildren(h1, ...kinder.filter((k) => k !== null && k !== undefined && k !== false).map((k) => /** @type {Node | string} */ (k)));
   document.title = titel === 'µEBS' ? 'µEBS' : `${titel} – µEBS`;
   if (letzterTitel !== location.hash + titel) h1.focus();

@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { datenbank, projektDatei, starteMit } from './hilfen.js';
+import { aufbuchen, datenbank, projektDatei, starteMit } from './hilfen.js';
 
 /** Projekt mit Alex bei -25,00 € (unter der Grenze -20,00 €). */
 function geschwaerzt(aktiv = true, modus = 'deckel') {
@@ -24,11 +24,7 @@ test('Schwärzung ein: geschwärzt kann keine Artikel buchen, aber kassieren und
   await expect(page.locator('#saldo')).toHaveText('offen 15,00 €');
   await expect(page.getByRole('button', { name: 'Bier 3,50 €' })).toBeDisabled();
   // Aufbuchung im Admin-Bereich bleibt möglich und hebt bei >= 0 auf
-  await page.goto(basis + '#/admin/aufbuchung');
-  await page.getByLabel('Mitglied', { exact: true }).selectOption({ label: 'Alex Beispiel (Lexi)' });
-  await page.getByLabel('Betrag in Euro').fill('15');
-  await page.getByRole('button', { name: 'Aufbuchen' }).click();
-  await expect(page.getByRole('status')).toContainText('aufgebucht');
+  await aufbuchen(page, 'Alex', '15');
   await page.goto(basis + '#/buchen/1');
   await expect(page.getByRole('button', { name: 'Bier 3,50 €' })).toBeEnabled();
   const d = await datenbank(page);
@@ -49,7 +45,7 @@ test('Storno der Buchung, die die Schwärzung ausgelöst hat, hebt sie auf (auch
   await page.goto(basis + '#/buchen/1');
   await page.getByRole('button', { name: 'Storno', exact: true }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: 'Stornieren' }).click();
-  await expect(page.locator('#saldo')).toHaveText('-10,00 €');
+  await expect(page.locator('#saldo')).toHaveText('\u221210,00 €');
   expect((await datenbank(page)).mitglieder[0]).toMatchObject({ guthaben: -1000, geschwaerzt: false });
   await expect(page.getByRole('button', { name: 'Bier 3,50 €' })).toBeEnabled();
 });

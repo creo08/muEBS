@@ -16,7 +16,7 @@ Der Modus lässt sich jederzeit in den [Einstellungen](einstellungen.md) umschal
 ## Stricheln
 
 1. Startseite: Kachel antippen oder den Namen, Spitznamen oder Betrag suchen.
-2. Buchen-Seite: Jeder Tipp auf eine Artikel-Kachel fügt ein Stück hinzu. Jeder Tipp auf eine Zeile der Bestellung entfernt ein Stück; bei 0 verschwindet die Zeile.
+2. Buchen-Seite: Jeder Tipp auf eine Artikel-Kachel fügt ein Stück hinzu (auf dem Tablet steht die Bestellung als Bon rechts daneben). Jeder Tipp auf eine Zeile der Bestellung entfernt ein Stück; bei 0 verschwindet die Zeile.
 3. „Jetzt X,XX € buchen“ antippen. Der Knopf sperrt sich sofort, ein Doppeltipp bucht also nur einmal.
 4. Nach dem Speichern geht es automatisch zur Startseite.
 
@@ -35,7 +35,7 @@ Unten auf der Buchen-Seite stehen die letzten 10 Buchungen.
 
 ## Aufbuchen (Einzahlung)
 
-Admin-Bereich → „Aufbuchung (Einzahlung)“: Mitglied wählen, Betrag in Euro eingeben, „Aufbuchen“. Geht auch für geschwärzte Mitglieder.
+Admin-Bereich → „Aufbuchung (Einzahlung)“: Namen oder Spitznamen ins Suchfeld tippen, das Mitglied in der Trefferliste antippen, Betrag in Euro eingeben, „Aufbuchen“. Danach steht die Suche für das nächste Mitglied bereit. Geht auch für geschwärzte Mitglieder. Aus der Mitglieder-Seite im Admin-Bereich führt „Aufbuchen“ direkt mit dem gewählten Mitglied hierher.
 
 ## Kassieren (Deckel)
 
@@ -48,7 +48,7 @@ Kassieren braucht keinen PIN und geht auch bei geschwärzten Mitgliedern. Es gib
 
 ## Kassierliste (Deckel)
 
-Startseite → „Kassierliste“:
+Kopfleiste → „Kassierliste“:
 
 - Oben: **Summe offen** und **kassiert seit Beginn des Kassiertags**. Der Kassiertag beginnt um 06:00 Uhr Ortszeit.
 - Darunter alle Mitglieder mit offenem Betrag. „bezahlt“ (mit Rückfrage) bucht den ganzen offenen Betrag als Zahlung.
@@ -57,3 +57,9 @@ Startseite → „Kassierliste“:
 
 - Ohne Suche zeigt die Startseite die aktiven Mitglieder, die in den letzten 14 Tagen mindestens einen Artikel gebucht haben. Passen nicht alle auf den Bildschirm, kommen die mit den meisten Stück dran. Angezeigt wird immer alphabetisch.
 - Die Suche findet immer alle aktiven Mitglieder.
+
+## Mitglieder und Artikel verwalten
+
+Admin-Bereich → „Mitglieder“ bzw. „Artikel“: eine Tabelle mit Suchfeld. Ein Tipp auf den Namen öffnet die Seite zum Bearbeiten (Name, Spitzname bzw. Preis und Reihenfolge, aktiv). „Neues Mitglied“ und „Neuer Artikel“ bleiben nach dem Anlegen offen, damit mehrere Einträge schnell hintereinander gehen. Gelöscht wird nie, nur deaktiviert; eine Nr. wird nie neu vergeben.
+
+Auf dem Tablet steht die Navigation des Admin-Bereichs links, auf dem Handy ist sie die Übersicht, und jede Unterseite hat „Zurück zum Admin-Bereich“.

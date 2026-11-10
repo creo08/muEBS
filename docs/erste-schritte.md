@@ -33,7 +33,7 @@ Alles lässt sich später in den [Einstellungen](einstellungen.md) ändern.
 
 ## 4. Mitglieder und Artikel anlegen
 
-Nach „Projekt anlegen“ öffnet sich „Mitglieder und Artikel anlegen“:
+Nach „Projekt anlegen“ öffnet sich „Mitglieder und Artikel anlegen“ (auf dem Tablet nebeneinander):
 
 1. Name (1–60 Zeichen) und optional Spitzname eingeben, „Mitglied anlegen“.
 2. Artikelname, Preis in Euro (z. B. `3,50`) und Reihenfolge eingeben, „Artikel anlegen“.
@@ -52,4 +52,4 @@ Ab jetzt zeigt die Startseite die Mitglieder, die in den letzten 14 Tagen gebuch
 
 ## 6. Gleich sichern
 
-Tippe auf der Startseite auf „Sicherung exportieren“ und lege die Datei an einem sicheren Ort ab. Die Daten liegen nur auf diesem Gerät – mehr dazu in [Sicherung und Projekt](sicherung-und-projekt.md).
+Tippe in der Kopfleiste auf „Sicherung“ und lege die Datei an einem sicheren Ort ab. Die Daten liegen nur auf diesem Gerät – mehr dazu in [Sicherung und Projekt](sicherung-und-projekt.md).

@@ -24,13 +24,13 @@ test('Storno von Artikel und Zahlung, aufheben und erneut stornieren – Guthabe
 
   await schalte(page, 'Storno', 'Stornieren');
   await expect(page.locator('#saldo')).toHaveText('Nichts offen');
-  await expect(page.locator('li.storniert')).toHaveCount(1);
+  await expect(page.locator('tr.storniert')).toHaveCount(1);
   let d = await datenbank(page);
   expect(d.buchungen.find((b) => b.typ === 'storno')).toMatchObject({ gesamtpreis: 0, artikel_id: null });
 
   await schalte(page, 'Storno aufheben', 'Storno aufheben');
   await expect(page.locator('#saldo')).toHaveText('offen 3,50 €');
-  await expect(page.locator('li.storniert')).toHaveCount(0);
+  await expect(page.locator('tr.storniert')).toHaveCount(0);
   await datenbank(page);
 
   await schalte(page, 'Storno', 'Stornieren');

@@ -33,7 +33,7 @@ test('neues Projekt Schritt für Schritt, dann Mitglieder und Artikel anlegen', 
 
 test('Text mit Formelzeichen am Anfang wird abgelehnt', async ({ page, basis }) => {
   await starteMit(page, basis, projektDatei());
-  await page.goto(basis + '#/admin/mitglieder');
+  await page.goto(basis + '#/admin/mitglieder/neu');
   await page.locator('#neu-name').fill('=HYPERLINK("x")');
   await page.getByRole('button', { name: 'Mitglied anlegen' }).click();
   await expect(page.getByRole('alert')).toHaveText('Name darf nicht mit = + - @ beginnen');
