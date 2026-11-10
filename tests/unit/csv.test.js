@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { abrechnungCsv, csvDatei, textFeld } from '../../js/csv.js';
-import { artikelCsv, guthabenCsv, mitgliederCsv, ARTIKEL_SPALTEN, GUTHABEN_SPALTEN, MITGLIEDER_SPALTEN } from '../../js/umstieg.js';
+import { artikelCsv, doppelteArtikelnamen, guthabenCsv, mitgliederCsv, ARTIKEL_SPALTEN, GUTHABEN_SPALTEN, MITGLIEDER_SPALTEN } from '../../js/umstieg.js';
 
 test('Textfeld: Anführungszeichen verdoppeln, Formelanfang mit \' entschärfen', () => {
   assert.equal(textFeld('a"b'), '"a""b"');
@@ -51,4 +51,10 @@ test('Abrechnung: guthaben, offen, bezahlt', () => {
   const zahlung = { id: 'z', geraet_id: 'g', typ: 'zahlung', mitglied_id: 2, artikel_id: null, storno_von: null, menge: 1, preis_pro_einheit: 300, gesamtpreis: 300, zeitstempel: '2026-01-01T10:00:00.000Z' };
   const csv = abrechnungCsv(mitglieder, [zahlung]);
   assert.equal(csv, '\uFEFF"id";"name";"nickname";"guthaben";"offen";"bezahlt"\r\n1;"Alex";"";-7,00;7,00;0,00\r\n2;"Bente";"B";0,00;0,00;3,00\r\n');
+});
+
+test('Umstieg: doppelte Artikelnamen werden erkannt (Vollsystem verlangt eindeutige Namen)', () => {
+  const a = (id, name, aktiv = true) => ({ id, name, preis: 100, reihenfolge: id, aktiv });
+  assert.deepEqual(doppelteArtikelnamen([a(1, 'Bier'), a(2, 'Limo'), a(3, 'Bier', false)]), [{ name: 'Bier', ids: [1, 3] }]);
+  assert.deepEqual(doppelteArtikelnamen([a(1, 'Bier'), a(2, 'bier')]), []);
 });
