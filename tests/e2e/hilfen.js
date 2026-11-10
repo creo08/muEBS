@@ -69,6 +69,21 @@ export async function datenbank(page, name = 'muebs') {
 }
 
 /**
+ * Aufbuchung über die Mitgliedersuche im Admin-Bereich.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} suche
+ * @param {string} betrag
+ */
+export async function aufbuchen(page, suche, betrag) {
+  await page.goto(page.url().split('#')[0] + '#/admin/aufbuchung');
+  await page.getByLabel('Mitglied suchen').fill(suche);
+  await page.getByRole('list', { name: 'Treffer' }).getByRole('button').first().click();
+  await page.getByLabel('Betrag in Euro').fill(betrag);
+  await page.getByRole('button', { name: 'Aufbuchen' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'aufgebucht' })).toBeVisible();
+}
+
+/**
  * Download abwarten und Inhalt als Text liefern.
  * @param {import('@playwright/test').Page} page
  * @param {() => Promise<unknown>} ausloeser

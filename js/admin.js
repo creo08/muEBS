@@ -1,22 +1,26 @@
 // @ts-check
-// Admin-Bereich: Aufbuchung, Mitglieder, Artikel, Einstellungen, Laden, Exporte, Zurücksetzen.
+// Admin-Bereich: Navigation in Gruppen, Mitglieder und Artikel als Tabelle mit eigener Bearbeiten-Seite,
+// Aufbuchung mit Mitgliedersuche, Einstellungen, Laden, Exporte, Datenschutz, Zurücksetzen.
 import { DB_DEMO, DB_ECHT, SCHEMEN, SPERRE_NACH_MS, VOLLSYSTEM_URL } from './konstanten.js';
 import { centText, euro, euroZuCent, saldoText } from './geld.js';
-import { nachName, textFehler, speicherFehlerText } from './regeln.js';
+import { istGeschwaerzt, nachName, textFehler, speicherFehlerText } from './regeln.js';
 import {
   aendereArtikel, aendereMitglied, alleArtikel, alleDaten, alleMitglieder, bucheBetrag,
-  geraetLesen, geraetSchreiben, loescheDb, neuerArtikel, neuesMitglied, speichereProjekt,
+  geraetLesen, geraetSchreiben, ladeMitglied, loescheDb, neuerArtikel, neuesMitglied, speichereProjekt,
 } from './db.js';
 import { leeresProjekt } from './projekt.js';
 import { abrechnungCsv } from './csv.js';
-import { datenschutzSeite } from './datenschutz.js';
+import { datenschutzInhalt } from './datenschutz.js';
 import { ARTIKEL_DATEI, GUTHABEN_DATEI, MITGLIEDER_DATEI, artikelCsv, guthabenCsv, mitgliederCsv } from './umstieg.js';
-import { bestaetige, csvName, dateiname, el, fehlerZeile, frage, herunterladen, hilfe, seite, statusZeile, zeitText } from './dom.js';
+import { bestaetige, csvName, dateiname, el, fehlerZeile, frage, herunterladen, hilfe, seiteMit, statusZeile, zeitText } from './dom.js';
 import { exportiereSicherung, dateiInhalt, importiere, vorherSichern } from './sicherung.js';
 import { PruefFehler } from './schema.js';
 import { db, zustand } from './zustand.js';
 
 /** @typedef {import('./regeln.js').Projekt} Projekt */
+/** @typedef {import('./regeln.js').Mitglied} Mitglied */
+/** @typedef {import('./regeln.js').Artikel} Artikel */
+/** @typedef {import('./dom.js').Kind} Kind */
 
 // ---------- PIN (nur Bedienschutz) ----------
 
@@ -66,9 +70,10 @@ export function istEntsperrt() {
 function pinSeite(weiter) {
   const fehler = fehlerZeile();
   const pin = el('input', { id: 'pin', type: 'password', inputmode: 'numeric', autocomplete: 'off', maxlength: 4, pattern: '\\d{4}', required: true });
-  seite(
-    'Admin-Bereich gesperrt',
+  seiteMit(
+    { titel: 'Admin-Bereich gesperrt', art: 'schmal' },
     el('form', {
+      class: 'zeile-formular',
       onsubmit: async (e) => {
         e.preventDefault();
         fehler.textContent = '';
@@ -90,9 +95,9 @@ function pinSeite(weiter) {
           pin.focus();
         }
       },
-    }, el('label', { for: 'pin' }, 'PIN'), pin, ' ', el('button', { type: 'submit' }, 'Entsperren')),
+    }, el('div', { class: 'feld' }, el('label', { for: 'pin' }, 'PIN'), pin), el('button', { type: 'submit' }, 'Entsperren')),
     fehler,
-    el('p', {}, el('a', { href: '#/' }, 'Zurück zur Startseite')),
+    el('div', { class: 'leiste' }, el('a', { class: 'knopf zweit', href: '#/' }, 'Zurück zur Startseite')),
   );
   pin.focus();
 }
@@ -107,237 +112,451 @@ function feld(text, feld) {
   return el('div', { class: 'feld' }, el('label', { for: feld.id }, text), feld);
 }
 
-const zurueck = () => el('p', {}, el('a', { href: '#/admin' }, 'Zurück zum Admin-Bereich'));
-
-/**
- * @param {unknown} f
- */
+/** @param {unknown} f */
 const meldung = (f) => (f instanceof PruefFehler ? f.message : speicherFehlerText(f));
 
-// ---------- Seiten ----------
+/** Navigation in Gruppen; ab Tablet-Breite als Seitenleiste. */
+const GRUPPEN = /** @type {Array<[string, Array<[string, string]>]>} */ ([
+  ['Am Tresen', [['aufbuchung', 'Aufbuchung (Einzahlung)']]],
+  ['Stammdaten', [['mitglieder', 'Mitglieder'], ['artikel', 'Artikel']]],
+  ['Projekt', [['einstellungen', 'Einstellungen'], ['exporte', 'Exporte'], ['laden', 'Sicherung laden']]],
+  ['Gerät', [['datenschutz', 'Datenschutz'], ['zuruecksetzen', 'Gerät zurücksetzen']]],
+]);
 
 /**
- * Einstieg: prüft die Sperre und zeigt die Unterseite.
- * @param {string} teil
+ * Seite im Admin-Rahmen: Navigation links (bzw. auf dem Handy nur auf der Übersicht), Inhalt rechts.
+ * @param {string} aktiv Unterseite ('' = Übersicht)
+ * @param {string} titel
+ * @param {...Kind} inhalt
  */
-export async function adminSeite(teil) {
-  if (!istEntsperrt()) {
-    zustand.entsperrt = false;
-    if (await pinGesetzt()) return pinSeite(() => adminSeite(teil));
-  }
-  switch (teil) {
-    case 'aufbuchung': return aufbuchung();
-    case 'mitglieder': return seite('Mitglieder', await mitgliederVerwaltung(), zurueck());
-    case 'artikel': return seite('Artikel', await artikelVerwaltung(), zurueck());
-    case 'einstellungen': return einstellungen();
-    case 'laden': return laden();
-    case 'exporte': return exporte();
-    case 'datenschutz': return datenschutzSeite('#/admin');
-    case 'zuruecksetzen': return zuruecksetzen();
-    case 'einrichtung':
-      return seite(
-        'Mitglieder und Artikel anlegen',
-        el('p', {}, 'Lege jetzt Mitglieder und Artikel an. Alles lässt sich später im Admin-Bereich ändern.'),
-        hilfe('erste-schritte', 'Erste Schritte'),
-        await mitgliederVerwaltung(),
-        await artikelVerwaltung(),
-        el('p', {}, el('a', { class: 'knopf', href: '#/' }, 'Fertig')),
-      );
-    default: return menue();
-  }
-}
-
-async function menue() {
-  const letzte = /** @type {string | undefined} */ (await geraetLesen(db(), 'letzte_sicherung'));
+async function rahmen(aktiv, titel, ...inhalt) {
   const gesperrt = await pinGesetzt();
-  /** @type {Array<[string, string]>} */
-  const punkte = [
-    ['aufbuchung', 'Aufbuchung (Einzahlung)'],
-    ['mitglieder', 'Mitglieder'],
-    ['artikel', 'Artikel'],
-    ['einstellungen', 'Einstellungen'],
-    ['laden', 'Sicherung laden'],
-    ['exporte', 'Exporte'],
-    ['datenschutz', 'Datenschutz'],
-    ['zuruecksetzen', 'Gerät zurücksetzen'],
-  ];
-  seite(
-    'Admin-Bereich',
-    el('p', {}, `Letzte Sicherung: ${letzte ? zeitText(letzte) : 'noch nie'}`),
-    el('nav', { 'aria-label': 'Admin-Bereich' }, el('ul', { class: 'zeilen' }, ...punkte.map(([ziel, text]) => el('li', {}, el('a', { href: `#/admin/${ziel}` }, text))))),
-    el('div', { class: 'leiste' },
-      el('a', { class: 'knopf zweit', href: '#/' }, 'Zur Startseite'),
-      gesperrt && el('button', { type: 'button', onclick: () => { zustand.entsperrt = false; location.hash = '#/'; } }, 'Sperren'),
+  const nav = el('nav', { class: 'admin-nav', 'aria-label': 'Admin-Bereich' },
+    ...GRUPPEN.map(([gruppe, punkte], i) => el('div', { class: 'nav-gruppe' },
+      el('p', { class: 'nav-titel', id: `gruppe-${i}` }, gruppe),
+      el('ul', { 'aria-labelledby': `gruppe-${i}` }, ...punkte.map(([ziel, text]) => el('li', {},
+        el('a', { href: `#/admin/${ziel}`, ...(ziel === aktiv ? { 'aria-current': 'page' } : {}) }, text)))),
+    )),
+    gesperrt && el('button', { type: 'button', class: 'zweit', onclick: () => { zustand.entsperrt = false; location.hash = '#/'; } }, 'Sperren'),
+  );
+  seiteMit(
+    { titel, art: `admin${aktiv ? ' admin-unterseite' : ''}` },
+    el('div', { class: 'admin-raster' },
+      nav,
+      el('div', { class: 'admin-inhalt' },
+        aktiv && el('a', { class: 'nur-schmal zurueck-admin', href: '#/admin' }, 'Zurück zum Admin-Bereich'),
+        ...inhalt,
+      ),
     ),
   );
 }
 
-async function aufbuchung() {
-  const mitglieder = (await alleMitglieder(db())).filter((m) => m.aktiv).sort(nachName);
-  const fehler = fehlerZeile();
-  const status = statusZeile();
-  const wahl = el('select', { id: 'auf-mitglied', required: true }, el('option', { value: '' }, 'Bitte wählen'), ...mitglieder.map((m) => el('option', { value: m.id }, m.nickname ? `${m.name} (${m.nickname})` : m.name)));
-  const betrag = el('input', { id: 'auf-betrag', inputmode: 'decimal', autocomplete: 'off', placeholder: '20,00', required: true });
-  const knopf = el('button', { type: 'submit' }, 'Aufbuchen');
-  seite(
-    'Aufbuchung',
-    el('form', {
-      onsubmit: async (e) => {
-        e.preventDefault();
-        fehler.textContent = status.textContent = '';
-        const cent = euroZuCent(betrag.value);
-        const m = mitglieder.find((x) => x.id === Number(wahl.value));
-        if (!m) return void (fehler.textContent = 'Bitte ein Mitglied wählen');
-        if (cent === null || cent <= 0) return void (fehler.textContent = 'Bitte einen Betrag über 0 mit höchstens 2 Nachkommastellen eingeben');
-        knopf.disabled = true;
-        try {
-          await bucheBetrag(db(), zustand.geraet, m.id, 'aufbuchung', cent);
-          status.textContent = `${euro(cent)} für ${m.name} aufgebucht`;
-          betrag.value = '';
-        } catch (f) {
-          fehler.textContent = speicherFehlerText(f);
-        }
-        knopf.disabled = false;
-      },
-    }, feld('Mitglied', wahl), feld('Betrag in Euro', betrag), el('p', {}, knopf)),
-    fehler,
-    status,
-    zurueck(),
+/**
+ * Formular-Wache für ungespeicherte Änderungen: vergleicht den Stand der Felder mit dem gespeicherten.
+ * @param {HTMLElement[]} bereiche
+ * @param {() => Promise<boolean>} speichern
+ */
+function bewache(bereiche, speichern) {
+  const stand = () => bereiche.flatMap((b) => [...b.querySelectorAll('input, select')]).map((f) => {
+    const e = /** @type {HTMLInputElement} */ (f);
+    return e.type === 'checkbox' || e.type === 'radio' ? String(e.checked) : e.value;
+  }).join('\u0000');
+  let gespeichert = stand();
+  zustand.wache = {
+    ungespeichert: () => stand() !== gespeichert,
+    speichern: async () => {
+      const ok = await speichern();
+      if (ok) gespeichert = stand();
+      return ok;
+    },
+  };
+  return { merken: () => { gespeichert = stand(); } };
+}
+
+// ---------- Einstieg ----------
+
+/**
+ * Einstieg: prüft die Sperre und zeigt die Unterseite.
+ * @param {string} teil
+ * @param {string} id Mitglied oder Artikel (Zahl) bzw. 'neu'
+ */
+export async function adminSeite(teil, id) {
+  if (!istEntsperrt()) {
+    zustand.entsperrt = false;
+    if (await pinGesetzt()) return pinSeite(() => adminSeite(teil, id));
+  }
+  switch (teil) {
+    case 'aufbuchung': return aufbuchung(Number(id));
+    case 'mitglieder': return id === 'neu' ? rahmen('mitglieder', 'Neues Mitglied', neuesMitgliedFormular(true)) : id ? mitgliedBearbeiten(Number(id)) : mitgliederListe();
+    case 'artikel': return id === 'neu' ? rahmen('artikel', 'Neuer Artikel', await neuerArtikelFormular(true)) : id ? artikelBearbeiten(Number(id)) : artikelListe();
+    case 'einstellungen': return einstellungen();
+    case 'laden': return laden();
+    case 'exporte': return exporte();
+    case 'datenschutz': return rahmen('datenschutz', 'Datenschutz', ...datenschutzInhalt());
+    case 'zuruecksetzen': return zuruecksetzen();
+    case 'einrichtung': return einrichtung();
+    default: return uebersicht();
+  }
+}
+
+async function uebersicht() {
+  const [letzte, mitglieder, artikel] = await Promise.all([
+    /** @type {Promise<string | undefined>} */ (geraetLesen(db(), 'letzte_sicherung')),
+    alleMitglieder(db()),
+    alleArtikel(db()),
+  ]);
+  const p = /** @type {Projekt} */ (zustand.projekt);
+  /** @param {string} name @param {string} wert @param {string} [id] */
+  const zahl = (name, wert, id) => el('div', {}, el('dt', {}, name), el('dd', id ? { id } : {}, wert));
+  await rahmen('', 'Admin-Bereich',
+    el('dl', { class: 'kennzahlen' },
+      zahl('Letzte Sicherung', letzte ? zeitText(letzte) : 'noch nie', 'letzte-sicherung'),
+      zahl('Modus', p.modus === 'deckel' ? 'Deckel' : 'Vorauszahlung'),
+      zahl('Mitglieder aktiv', `${mitglieder.filter((m) => m.aktiv).length} von ${mitglieder.length}`),
+      zahl('Artikel aktiv', `${artikel.filter((a) => a.aktiv).length} von ${artikel.length}`),
+    ),
+    el('div', { class: 'leiste' }, el('button', { type: 'button', class: 'zweit', onclick: async () => { await exportiereSicherung(); await uebersicht(); } }, 'Jetzt sichern')),
   );
 }
 
-/** Mitglieder anlegen und ändern. Gelöscht wird nie, nur deaktiviert. */
-async function mitgliederVerwaltung() {
-  const bereich = el('section', { class: 'verwaltung', 'aria-labelledby': 'mv-titel' });
-  const fehler = fehlerZeile();
-  const status = statusZeile();
-  const zeichne = async () => {
-    const mitglieder = (await alleMitglieder(db())).sort(nachName);
-    const name = el('input', { id: 'neu-name', autocomplete: 'off', maxlength: 60, required: true });
-    const nick = el('input', { id: 'neu-nick', autocomplete: 'off', maxlength: 40 });
-    const neu = el('form', {
-      'aria-label': 'Neues Mitglied',
-      onsubmit: async (e) => {
-        e.preventDefault();
-        fehler.textContent = status.textContent = '';
-        const n = name.value.trim();
-        const s = nick.value.trim();
-        const f = textFehler(n, 1, 60) ? `Name ${textFehler(n, 1, 60)}` : textFehler(s, 0, 40) ? `Spitzname ${textFehler(s, 0, 40)}` : null;
-        if (f) return void (fehler.textContent = f);
-        try {
-          const id = await neuesMitglied(db(), n, s);
-          await zeichne();
-          status.textContent = `${n} angelegt (Nr. ${id})`;
-          /** @type {HTMLInputElement | null} */ (bereich.querySelector('#neu-name'))?.focus();
-        } catch (x) {
-          fehler.textContent = meldung(x);
-        }
-      },
-    }, feld('Name', name), feld('Spitzname (optional)', nick), el('button', { type: 'submit' }, 'Mitglied anlegen'));
-    const zeilen = mitglieder.map((m) => {
-      const mn = el('input', { id: `m${m.id}-name`, value: m.name, maxlength: 60, autocomplete: 'off', required: true });
-      const ms = el('input', { id: `m${m.id}-nick`, value: m.nickname, maxlength: 40, autocomplete: 'off' });
-      const ma = el('input', { id: `m${m.id}-aktiv`, type: 'checkbox', checked: m.aktiv });
-      return el('form', {
-        'aria-label': `Mitglied ${m.name}`,
-        onsubmit: async (e) => {
-          e.preventDefault();
-          fehler.textContent = status.textContent = '';
-          const n = mn.value.trim();
-          const s = ms.value.trim();
-          const f = textFehler(n, 1, 60) ? `Name ${textFehler(n, 1, 60)}` : textFehler(s, 0, 40) ? `Spitzname ${textFehler(s, 0, 40)}` : null;
-          if (f) return void (fehler.textContent = f);
-          try {
-            await aendereMitglied(db(), m.id, { name: n, nickname: s, aktiv: ma.checked });
-            status.textContent = `${n} gespeichert`;
-          } catch (x) {
-            fehler.textContent = meldung(x);
-          }
-        },
-      },
-      el('span', {}, `Nr. ${m.id}`),
-      feld('Name', mn), feld('Spitzname', ms),
-      el('label', { class: 'inline', for: ma.id }, ma, 'aktiv'),
-      el('span', {}, zustand.projekt ? saldoText(m.guthaben, zustand.projekt.modus) || '0,00 €' : ''),
-      el('button', { type: 'submit' }, 'Speichern'));
-    });
-    bereich.replaceChildren(el('h2', { id: 'mv-titel' }, 'Mitglieder'), neu, fehler, status, ...zeilen);
+// ---------- Aufbuchung mit Mitgliedersuche ----------
+
+/**
+ * Suche über alle aktiven Mitglieder; wahl wird mit dem angetippten Mitglied aufgerufen.
+ * @param {Mitglied[]} mitglieder
+ * @param {(m: Mitglied) => void} wahl
+ */
+function mitgliedSuche(mitglieder, wahl) {
+  const eingabe = el('input', { id: 'auf-suche', type: 'search', autocomplete: 'off', enterkeyhint: 'search', placeholder: 'Name oder Spitzname' });
+  const treffer = el('ul', { class: 'treffer', 'aria-label': 'Treffer' });
+  const hinweis = el('p', { class: 'leer', role: 'status' });
+  const zeichne = () => {
+    const q = eingabe.value.trim().toLowerCase();
+    const liste = q ? mitglieder.filter((m) => m.name.toLowerCase().includes(q) || m.nickname.toLowerCase().includes(q)).sort(nachName).slice(0, 8) : [];
+    treffer.replaceChildren(...liste.map((m) => el('li', {}, el('button', { type: 'button', class: 'treffer-knopf', onclick: () => wahl(m) },
+      el('span', {}, m.nickname ? `${m.name} (${m.nickname})` : m.name),
+      el('span', { class: 'num leise' }, saldoText(m.guthaben, /** @type {Projekt} */ (zustand.projekt).modus) || '0,00 €')))));
+    hinweis.textContent = q && !liste.length ? 'Kein aktives Mitglied gefunden.' : '';
   };
-  await zeichne();
-  return bereich;
+  eingabe.addEventListener('input', zeichne);
+  return { knoten: el('div', { class: 'mitglied-suche' }, feld('Mitglied suchen', eingabe), hinweis, treffer), eingabe };
 }
 
-/** Artikel anlegen und ändern. Gelöscht wird nie, nur deaktiviert. */
-async function artikelVerwaltung() {
-  const bereich = el('section', { class: 'verwaltung', 'aria-labelledby': 'av-titel' });
+/** @param {number} vorwahl */
+async function aufbuchung(vorwahl) {
+  const mitglieder = (await alleMitglieder(db())).filter((m) => m.aktiv);
   const fehler = fehlerZeile();
   const status = statusZeile();
-  /**
-   * @param {string} name
-   * @param {string} preis
-   * @param {string} reihenfolge
-   */
-  const lies = (name, preis, reihenfolge) => {
-    const n = name.trim();
-    const p = euroZuCent(preis);
-    const r = Number(reihenfolge);
-    const tf = textFehler(n, 1, 40);
-    if (tf) return `Name ${tf}`;
-    if (p === null || p < 1 || p > 100000) return 'Preis muss zwischen 0,01 € und 1000,00 € liegen (höchstens 2 Nachkommastellen)';
-    if (!Number.isInteger(r)) return 'Reihenfolge muss eine ganze Zahl sein';
-    return { name: n, preis: p, reihenfolge: r };
-  };
-  const zeichne = async () => {
-    const artikel = (await alleArtikel(db())).sort((a, b) => a.reihenfolge - b.reihenfolge || a.id - b.id);
-    const name = el('input', { id: 'neu-artikel', autocomplete: 'off', maxlength: 40, required: true });
-    const preis = el('input', { id: 'neu-preis', inputmode: 'decimal', autocomplete: 'off', placeholder: '2,50', required: true });
-    const reihe = el('input', { id: 'neu-reihe', type: 'number', step: 1, value: artikel.reduce((m, a) => Math.max(m, a.reihenfolge), 0) + 1 });
-    const neu = el('form', {
-      'aria-label': 'Neuer Artikel',
-      onsubmit: async (e) => {
-        e.preventDefault();
-        fehler.textContent = status.textContent = '';
-        const w = lies(name.value, preis.value, reihe.value);
-        if (typeof w === 'string') return void (fehler.textContent = w);
-        try {
-          const id = await neuerArtikel(db(), w);
-          await zeichne();
-          status.textContent = `${w.name} angelegt (Nr. ${id})`;
-        } catch (x) {
-          fehler.textContent = meldung(x);
-        }
-      },
-    }, feld('Name', name), feld('Preis in Euro', preis), feld('Reihenfolge', reihe), el('button', { type: 'submit' }, 'Artikel anlegen'));
-    const zeilen = artikel.map((a) => {
-      const an = el('input', { id: `a${a.id}-name`, value: a.name, maxlength: 40, autocomplete: 'off', required: true });
-      const ap = el('input', { id: `a${a.id}-preis`, value: centText(a.preis), inputmode: 'decimal', autocomplete: 'off', required: true });
-      const ar = el('input', { id: `a${a.id}-reihe`, type: 'number', step: 1, value: a.reihenfolge });
-      const aa = el('input', { id: `a${a.id}-aktiv`, type: 'checkbox', checked: a.aktiv });
-      return el('form', {
-        'aria-label': `Artikel ${a.name}`,
+  const bereich = el('div', {});
+  /** @param {Mitglied | undefined} m */
+  const zeichne = (m) => {
+    if (!m) {
+      const s = mitgliedSuche(mitglieder, zeichne);
+      bereich.replaceChildren(s.knoten);
+      s.eingabe.focus();
+      return;
+    }
+    const betrag = el('input', { id: 'auf-betrag', inputmode: 'decimal', autocomplete: 'off', placeholder: '20,00', required: true });
+    const knopf = el('button', { type: 'submit' }, 'Aufbuchen');
+    bereich.replaceChildren(
+      el('div', { class: 'auswahl' },
+        el('div', {}, el('p', { class: 'auswahl-name' }, m.nickname ? `${m.name} (${m.nickname})` : m.name),
+          el('p', { class: 'num leise' }, `Stand: ${saldoText(m.guthaben, /** @type {Projekt} */ (zustand.projekt).modus) || '0,00 €'}`)),
+        el('button', { type: 'button', class: 'zweit', onclick: () => zeichne(undefined) }, 'Anderes Mitglied'),
+      ),
+      el('form', {
+        class: 'zeile-formular',
         onsubmit: async (e) => {
           e.preventDefault();
           fehler.textContent = status.textContent = '';
-          const w = lies(an.value, ap.value, ar.value);
-          if (typeof w === 'string') return void (fehler.textContent = w);
+          const cent = euroZuCent(betrag.value);
+          if (cent === null || cent <= 0) return void (fehler.textContent = 'Bitte einen Betrag über 0 mit höchstens 2 Nachkommastellen eingeben');
+          knopf.disabled = true;
           try {
-            await aendereArtikel(db(), a.id, { ...w, aktiv: aa.checked });
-            status.textContent = `${w.name} gespeichert`;
-          } catch (x) {
-            fehler.textContent = meldung(x);
+            await bucheBetrag(db(), zustand.geraet, m.id, 'aufbuchung', cent);
+            status.textContent = `${euro(cent)} für ${m.name} aufgebucht`;
+            const neu = await ladeMitglied(db(), m.id);
+            const i = mitglieder.findIndex((x) => x.id === m.id);
+            if (neu && i >= 0) mitglieder[i] = neu;
+            zeichne(undefined);
+          } catch (f) {
+            fehler.textContent = speicherFehlerText(f);
+            knopf.disabled = false;
           }
         },
-      },
-      el('span', {}, `Nr. ${a.id}`),
-      feld('Name', an), feld('Preis', ap), feld('Reihenfolge', ar),
-      el('label', { class: 'inline', for: aa.id }, aa, 'aktiv'),
-      el('button', { type: 'submit' }, 'Speichern'));
-    });
-    bereich.replaceChildren(el('h2', { id: 'av-titel' }, 'Artikel'), neu, fehler, status, ...zeilen);
+      }, feld('Betrag in Euro', betrag), knopf),
+    );
+    betrag.focus();
   };
-  await zeichne();
-  return bereich;
+  await rahmen('aufbuchung', 'Aufbuchung', el('p', { class: 'einleitung' }, 'Einzahlung auf das Guthaben eines Mitglieds.'), bereich, fehler, status);
+  zeichne(mitglieder.find((m) => m.id === vorwahl));
 }
+
+// ---------- Mitglieder ----------
+
+/**
+ * Tabelle mit Suchfeld; Zeilen werden nur ein-/ausgeblendet.
+ * @param {string} name
+ * @param {string[]} kopf
+ * @param {Array<{suchtext: string, zellen: Kind[], klassen: string[]}>} zeilen
+ */
+function suchTabelle(name, kopf, zeilen) {
+  const suche = el('input', { id: 'tabelle-suche', type: 'search', autocomplete: 'off', placeholder: 'Suchen' });
+  const trs = zeilen.map((z) => ({ z, tr: el('tr', {}, ...z.zellen.map((c, i) => el('td', { class: z.klassen[i] ?? '' }, c))) }));
+  suche.addEventListener('input', () => {
+    const q = suche.value.trim().toLowerCase();
+    for (const { z, tr } of trs) tr.hidden = Boolean(q) && !z.suchtext.includes(q);
+  });
+  return [
+    feld(`${name} durchsuchen`, suche),
+    zeilen.length
+      ? el('table', { class: 'tabelle stamm' },
+        el('thead', {}, el('tr', {}, ...kopf.map((k, i) => el('th', { scope: 'col', class: zeilen[0]?.klassen[i] ?? '' }, k)))),
+        el('tbody', {}, ...trs.map((t) => t.tr)))
+      : el('p', { class: 'leer' }, 'Noch keine Einträge.'),
+  ];
+}
+
+async function mitgliederListe() {
+  const p = /** @type {Projekt} */ (zustand.projekt);
+  const mitglieder = (await alleMitglieder(db())).sort(nachName);
+  await rahmen('mitglieder', 'Mitglieder',
+    el('div', { class: 'leiste' }, el('a', { class: 'knopf', href: '#/admin/mitglieder/neu' }, 'Neues Mitglied')),
+    ...suchTabelle('Mitglieder', ['Nr.', 'Name', 'Spitzname', 'Stand', 'Status'], mitglieder.map((m) => ({
+      suchtext: `${m.name} ${m.nickname}`.toLowerCase(),
+      zellen: [String(m.id), el('a', { href: `#/admin/mitglieder/${m.id}` }, m.name), m.nickname, saldoText(m.guthaben, p.modus) || '0,00 €', m.aktiv ? (istGeschwaerzt(p, m) ? 'geschwärzt' : 'aktiv') : 'inaktiv'],
+      klassen: ['t-nr num', 't-name', 't-nick', 't-betrag num', 't-status'],
+    }))),
+  );
+}
+
+/**
+ * Formular für neue Mitglieder; bleibt nach dem Anlegen für das nächste offen.
+ * @param {boolean} bewacht mit Rückfrage bei ungespeicherter Eingabe
+ */
+function neuesMitgliedFormular(bewacht) {
+  const fehler = fehlerZeile();
+  const status = statusZeile();
+  const name = el('input', { id: 'neu-name', autocomplete: 'off', maxlength: 60, required: true });
+  const nick = el('input', { id: 'neu-nick', autocomplete: 'off', maxlength: 40 });
+  const liste = el('ul', { class: 'angelegt', 'aria-label': 'Gerade angelegt' });
+  const anlegen = async () => {
+    fehler.textContent = status.textContent = '';
+    const n = name.value.trim();
+    const s = nick.value.trim();
+    const f = textFehler(n, 1, 60) ? `Name ${textFehler(n, 1, 60)}` : textFehler(s, 0, 40) ? `Spitzname ${textFehler(s, 0, 40)}` : null;
+    if (f) {
+      fehler.textContent = f;
+      name.focus();
+      return false;
+    }
+    try {
+      const id = await neuesMitglied(db(), n, s);
+      status.textContent = `${n} angelegt (Nr. ${id})`;
+      liste.prepend(el('li', {}, el('a', { href: `#/admin/mitglieder/${id}` }, s ? `${n} (${s})` : n)));
+      name.value = nick.value = '';
+      name.focus();
+      return true;
+    } catch (x) {
+      fehler.textContent = meldung(x);
+      return false;
+    }
+  };
+  const form = el('form', {
+    class: 'formular',
+    'aria-label': 'Neues Mitglied',
+    onsubmit: async (e) => {
+      e.preventDefault();
+      await anlegen();
+    },
+  }, feld('Name', name), feld('Spitzname (optional)', nick), el('div', { class: 'leiste' }, el('button', { type: 'submit' }, 'Mitglied anlegen')));
+  if (bewacht) zustand.wache = { ungespeichert: () => Boolean(name.value.trim() || nick.value.trim()), speichern: anlegen };
+  return el('section', { class: 'tafel', 'aria-label': 'Mitglied anlegen' }, form, fehler, status, liste);
+}
+
+/** @param {number} id */
+async function mitgliedBearbeiten(id) {
+  const m = Number.isInteger(id) ? await ladeMitglied(db(), id) : undefined;
+  if (!m) {
+    location.hash = '#/admin/mitglieder';
+    return;
+  }
+  const p = /** @type {Projekt} */ (zustand.projekt);
+  const fehler = fehlerZeile();
+  const status = statusZeile();
+  const name = el('input', { id: 'm-name', value: m.name, maxlength: 60, autocomplete: 'off', required: true });
+  const nick = el('input', { id: 'm-nick', value: m.nickname, maxlength: 40, autocomplete: 'off' });
+  const aktiv = el('input', { id: 'm-aktiv', type: 'checkbox', checked: m.aktiv });
+  const speichern = async () => {
+    fehler.textContent = status.textContent = '';
+    const n = name.value.trim();
+    const s = nick.value.trim();
+    const f = textFehler(n, 1, 60) ? `Name ${textFehler(n, 1, 60)}` : textFehler(s, 0, 40) ? `Spitzname ${textFehler(s, 0, 40)}` : null;
+    if (f) {
+      fehler.textContent = f;
+      return false;
+    }
+    try {
+      await aendereMitglied(db(), m.id, { name: n, nickname: s, aktiv: aktiv.checked });
+      status.textContent = `${n} gespeichert`;
+      return true;
+    } catch (x) {
+      fehler.textContent = meldung(x);
+      return false;
+    }
+  };
+  const form = el('form', { class: 'formular' },
+    feld('Name', name), feld('Spitzname', nick),
+    el('label', { class: 'wahl-zeile', for: aktiv.id }, aktiv, 'aktiv (inaktive erscheinen nicht am Tresen; die Nr. wird nie neu vergeben)'),
+    el('div', { class: 'leiste' }, el('button', { type: 'submit' }, 'Speichern'), el('a', { class: 'knopf zweit', href: '#/admin/mitglieder' }, 'Zur Liste')));
+  const wache = bewache([form], speichern);
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (await speichern()) wache.merken();
+  });
+  await rahmen('mitglieder', m.name,
+    el('dl', { class: 'kennzahlen' },
+      el('div', {}, el('dt', {}, 'Nr.'), el('dd', { class: 'num' }, String(m.id))),
+      el('div', {}, el('dt', {}, 'Stand'), el('dd', { class: 'num' }, saldoText(m.guthaben, p.modus) || '0,00 €')),
+      el('div', {}, el('dt', {}, 'Status'), el('dd', {}, m.aktiv ? (istGeschwaerzt(p, m) ? 'geschwärzt' : 'aktiv') : 'inaktiv')),
+    ),
+    el('section', { class: 'tafel', 'aria-label': 'Mitglied bearbeiten' }, form, fehler, status),
+    el('div', { class: 'leiste' },
+      el('a', { class: 'knopf zweit', href: `#/admin/aufbuchung/${m.id}` }, 'Aufbuchen'),
+      m.aktiv && el('a', { class: 'knopf zweit', href: `#/buchen/${m.id}` }, 'Zur Buchen-Seite'),
+    ),
+  );
+}
+
+// ---------- Artikel ----------
+
+/**
+ * @param {string} name
+ * @param {string} preis
+ * @param {string} reihenfolge
+ */
+function lies(name, preis, reihenfolge) {
+  const n = name.trim();
+  const p = euroZuCent(preis);
+  const r = Number(reihenfolge);
+  const tf = textFehler(n, 1, 40);
+  if (tf) return `Name ${tf}`;
+  if (p === null || p < 1 || p > 100000) return 'Preis muss zwischen 0,01 € und 1000,00 € liegen (höchstens 2 Nachkommastellen)';
+  if (!Number.isInteger(r)) return 'Reihenfolge muss eine ganze Zahl sein';
+  return { name: n, preis: p, reihenfolge: r };
+}
+
+async function artikelListe() {
+  const artikel = (await alleArtikel(db())).sort((a, b) => a.reihenfolge - b.reihenfolge || a.id - b.id);
+  await rahmen('artikel', 'Artikel',
+    el('div', { class: 'leiste' }, el('a', { class: 'knopf', href: '#/admin/artikel/neu' }, 'Neuer Artikel')),
+    ...suchTabelle('Artikel', ['Nr.', 'Name', 'Reihenfolge', 'Preis', 'Status'], artikel.map((a) => ({
+      suchtext: a.name.toLowerCase(),
+      zellen: [String(a.id), el('a', { href: `#/admin/artikel/${a.id}` }, a.name), String(a.reihenfolge), euro(a.preis), a.aktiv ? 'aktiv' : 'inaktiv'],
+      klassen: ['t-nr num', 't-name', 't-nick num', 't-betrag num', 't-status'],
+    }))),
+  );
+}
+
+/** @param {boolean} bewacht */
+async function neuerArtikelFormular(bewacht) {
+  const vorhanden = await alleArtikel(db());
+  let naechste = vorhanden.reduce((m, a) => Math.max(m, a.reihenfolge), 0) + 1;
+  const fehler = fehlerZeile();
+  const status = statusZeile();
+  const name = el('input', { id: 'neu-artikel', autocomplete: 'off', maxlength: 40, required: true });
+  const preis = el('input', { id: 'neu-preis', inputmode: 'decimal', autocomplete: 'off', placeholder: '2,50', required: true });
+  const reihe = el('input', { id: 'neu-reihe', type: 'number', step: 1, value: naechste });
+  const liste = el('ul', { class: 'angelegt', 'aria-label': 'Gerade angelegt' });
+  const anlegen = async () => {
+    fehler.textContent = status.textContent = '';
+    const w = lies(name.value, preis.value, reihe.value);
+    if (typeof w === 'string') {
+      fehler.textContent = w;
+      return false;
+    }
+    try {
+      const id = await neuerArtikel(db(), w);
+      status.textContent = `${w.name} angelegt (Nr. ${id})`;
+      liste.prepend(el('li', {}, el('a', { href: `#/admin/artikel/${id}` }, `${w.name} ${euro(w.preis)}`)));
+      naechste = Math.max(naechste, w.reihenfolge) + 1;
+      name.value = preis.value = '';
+      reihe.value = String(naechste);
+      name.focus();
+      return true;
+    } catch (x) {
+      fehler.textContent = meldung(x);
+      return false;
+    }
+  };
+  const form = el('form', {
+    class: 'formular',
+    'aria-label': 'Neuer Artikel',
+    onsubmit: async (e) => {
+      e.preventDefault();
+      await anlegen();
+    },
+  }, feld('Name', name), feld('Preis in Euro', preis), feld('Reihenfolge', reihe), el('div', { class: 'leiste' }, el('button', { type: 'submit' }, 'Artikel anlegen')));
+  // die vorgeschlagene Reihenfolge allein ist keine ungespeicherte Eingabe
+  if (bewacht) zustand.wache = { ungespeichert: () => Boolean(name.value.trim() || preis.value.trim()), speichern: anlegen };
+  return el('section', { class: 'tafel', 'aria-label': 'Artikel anlegen' }, form, fehler, status, liste);
+}
+
+/** @param {number} id */
+async function artikelBearbeiten(id) {
+  const a = Number.isInteger(id) ? (await alleArtikel(db())).find((x) => x.id === id) : undefined;
+  if (!a) {
+    location.hash = '#/admin/artikel';
+    return;
+  }
+  const fehler = fehlerZeile();
+  const status = statusZeile();
+  const name = el('input', { id: 'a-name', value: a.name, maxlength: 40, autocomplete: 'off', required: true });
+  const preis = el('input', { id: 'a-preis', value: centText(a.preis), inputmode: 'decimal', autocomplete: 'off', required: true });
+  const reihe = el('input', { id: 'a-reihe', type: 'number', step: 1, value: a.reihenfolge });
+  const aktiv = el('input', { id: 'a-aktiv', type: 'checkbox', checked: a.aktiv });
+  const speichern = async () => {
+    fehler.textContent = status.textContent = '';
+    const w = lies(name.value, preis.value, reihe.value);
+    if (typeof w === 'string') {
+      fehler.textContent = w;
+      return false;
+    }
+    try {
+      await aendereArtikel(db(), a.id, { ...w, aktiv: aktiv.checked });
+      status.textContent = `${w.name} gespeichert`;
+      return true;
+    } catch (x) {
+      fehler.textContent = meldung(x);
+      return false;
+    }
+  };
+  const form = el('form', { class: 'formular' },
+    feld('Name', name), feld('Preis in Euro', preis), feld('Reihenfolge', reihe),
+    el('label', { class: 'wahl-zeile', for: aktiv.id }, aktiv, 'aktiv (inaktive erscheinen nicht am Tresen; die Nr. wird nie neu vergeben)'),
+    el('div', { class: 'leiste' }, el('button', { type: 'submit' }, 'Speichern'), el('a', { class: 'knopf zweit', href: '#/admin/artikel' }, 'Zur Liste')));
+  const wache = bewache([form], speichern);
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (await speichern()) wache.merken();
+  });
+  await rahmen('artikel', a.name, el('section', { class: 'tafel', 'aria-label': 'Artikel bearbeiten' }, form, fehler, status));
+}
+
+async function einrichtung() {
+  seiteMit(
+    { titel: 'Mitglieder und Artikel anlegen', art: 'einrichtung' },
+    el('p', { class: 'einleitung' }, 'Lege jetzt Mitglieder und Artikel an. Alles lässt sich später im Admin-Bereich ändern.'),
+    hilfe('erste-schritte', 'Erste Schritte'),
+    el('div', { class: 'zwei-spalten' },
+      el('div', {}, el('h2', {}, 'Mitglieder'), neuesMitgliedFormular(false)),
+      el('div', {}, el('h2', {}, 'Artikel'), await neuerArtikelFormular(false)),
+    ),
+    el('div', { class: 'leiste' }, el('a', { class: 'knopf gross', href: '#/' }, 'Fertig')),
+  );
+}
+
+// ---------- Einstellungen ----------
 
 async function einstellungen() {
   const p = /** @type {Projekt} */ (zustand.projekt);
@@ -346,108 +565,135 @@ async function einstellungen() {
   const schema = el('select', { id: 'schema' }, ...SCHEMEN.map((s) => el('option', { value: s.wert, selected: s.wert === p.farbschema }, s.name)));
   schema.addEventListener('change', () => document.documentElement.setAttribute('data-schema', schema.value));
   /** @param {'vorauszahlung' | 'deckel'} wert @param {string} text */
-  const modusFeld = (wert, text) => el('label', { class: 'inline' }, el('input', { type: 'radio', name: 'modus', value: wert, checked: p.modus === wert }), text);
+  const modusFeld = (wert, text) => el('label', { class: 'wahl-zeile' }, el('input', { type: 'radio', name: 'modus', value: wert, checked: p.modus === wert }), text);
   const schwaerzung = el('input', { id: 'schwaerzung', type: 'checkbox', checked: p.schwaerzung_aktiv });
   const grenze = el('input', { id: 'grenze', inputmode: 'decimal', autocomplete: 'off', value: centText(p.schwaerzungs_grenze) });
-  const formular = el('form', {
-    onsubmit: async (e) => {
-      e.preventDefault();
-      fehler.textContent = status.textContent = '';
-      const g = euroZuCent(grenze.value);
-      if (g === null || g > 0) return void (fehler.textContent = 'Schwärzungsgrenze muss 0 oder negativ sein, z. B. -20,00');
-      const modus = /** @type {HTMLInputElement | null} */ (formular.querySelector('input[name="modus"]:checked'))?.value === 'deckel' ? 'deckel' : 'vorauszahlung';
-      /** @type {Projekt} */
-      const neu = { farbschema: schema.value, modus, schwaerzung_aktiv: schwaerzung.checked, schwaerzungs_grenze: g };
-      try {
-        await speichereProjekt(db(), neu);
-        zustand.projekt = neu;
-        status.textContent = 'Einstellungen gespeichert';
-      } catch (x) {
-        fehler.textContent = speicherFehlerText(x);
-      }
-    },
-  },
-  feld('Farbschema', schema),
-  hilfe('einstellungen', 'Farbschema'),
-  el('fieldset', {}, el('legend', {}, 'Modus'), modusFeld('vorauszahlung', 'Vorauszahlung (erst aufbuchen, dann stricheln)'), modusFeld('deckel', 'Deckel (stricheln, dann zahlen)'), hilfe('stricheln-und-kassieren', 'Modus')),
-  el('fieldset', {}, el('legend', {}, 'Schwärzung'), el('label', { class: 'inline', for: 'schwaerzung' }, schwaerzung, 'Schwärzung ein'), feld('Schwärzungsgrenze in Euro (0 oder negativ)', grenze), hilfe('einstellungen', 'Schwärzung')),
-  el('p', {}, el('button', { type: 'submit' }, 'Einstellungen speichern')));
-
-  seite(
-    'Einstellungen',
-    hilfe('einstellungen', 'Einstellungen'),
-    formular,
+  const speichern = async () => {
+    fehler.textContent = status.textContent = '';
+    const g = euroZuCent(grenze.value);
+    if (g === null || g > 0) {
+      fehler.textContent = 'Schwärzungsgrenze muss 0 oder negativ sein, z. B. -20,00';
+      grenze.focus();
+      return false;
+    }
+    const modus = /** @type {HTMLInputElement | null} */ (formular.querySelector('input[name="modus"]:checked'))?.value === 'deckel' ? 'deckel' : 'vorauszahlung';
+    /** @type {Projekt} */
+    const neu = { farbschema: schema.value, modus, schwaerzung_aktiv: schwaerzung.checked, schwaerzungs_grenze: g };
+    try {
+      await speichereProjekt(db(), neu);
+      zustand.projekt = neu;
+      status.textContent = 'Einstellungen gespeichert';
+      return true;
+    } catch (x) {
+      fehler.textContent = speicherFehlerText(x);
+      return false;
+    }
+  };
+  const formular = el('form', { class: 'formular' },
+    el('fieldset', {}, el('legend', {}, 'Darstellung'), feld('Farbschema', schema), hilfe('einstellungen', 'Farbschema')),
+    el('fieldset', {}, el('legend', {}, 'Modus'), modusFeld('vorauszahlung', 'Vorauszahlung (erst aufbuchen, dann stricheln)'), modusFeld('deckel', 'Deckel (stricheln, dann zahlen)'), hilfe('stricheln-und-kassieren', 'Modus')),
+    el('fieldset', {}, el('legend', {}, 'Schwärzung'), el('label', { class: 'wahl-zeile', for: 'schwaerzung' }, schwaerzung, 'Schwärzung ein'), feld('Schwärzungsgrenze in Euro (0 oder negativ)', grenze), hilfe('einstellungen', 'Schwärzung')),
+    el('div', { class: 'leiste' }, el('button', { type: 'submit' }, 'Einstellungen speichern')),
     fehler,
     status,
-    await pinBereich(),
-    await speicherBereich(),
-    zurueck(),
   );
+  const pin = await pinBereich();
+  const wache = bewache([formular, pin.knoten], async () => (await speichern()) && (await pin.speichern()));
+  formular.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (await speichern()) wache.merken();
+  });
+  // nach dem Speichern des PINs ist der PIN-Bereich neu gezeichnet und leer: neuen Stand merken
+  pin.nachSpeichern(() => wache.merken());
+  await rahmen('einstellungen', 'Einstellungen', formular, pin.knoten, await speicherBereich());
 }
 
 async function pinBereich() {
-  const bereich = el('section', { 'aria-labelledby': 'pin-titel' });
+  const bereich = el('section', { class: 'tafel', 'aria-labelledby': 'pin-titel' });
   const fehler = fehlerZeile();
   const status = statusZeile();
+  /** @type {() => void} */
+  let gemerkt = () => undefined;
+  /** @type {() => Promise<boolean>} */
+  let speichern = async () => true;
   const zeichne = async () => {
     const gesetzt = await pinGesetzt();
     const pin1 = el('input', { id: 'pin-neu', type: 'password', inputmode: 'numeric', autocomplete: 'off', maxlength: 4 });
     const pin2 = el('input', { id: 'pin-wdh', type: 'password', inputmode: 'numeric', autocomplete: 'off', maxlength: 4 });
+    speichern = async () => {
+      if (!pin1.value && !pin2.value) return true;
+      fehler.textContent = status.textContent = '';
+      if (pin1.value !== pin2.value) {
+        fehler.textContent = 'Die beiden PINs stimmen nicht überein';
+        return false;
+      }
+      try {
+        await setzePin(pin1.value);
+        await zeichne();
+        status.textContent = 'PIN gespeichert';
+        gemerkt();
+        return true;
+      } catch (x) {
+        fehler.textContent = speicherFehlerText(x).replace('Speichern fehlgeschlagen: ', '');
+        return false;
+      }
+    };
     bereich.replaceChildren(
       el('h2', { id: 'pin-titel' }, 'PIN'),
       el('p', {}, gesetzt ? 'Ein PIN sperrt den Admin-Bereich.' : 'Kein PIN gesetzt.', ' Der PIN ist nur ein Bedienschutz.'),
-      hilfe('datensicherheit', 'PIN'),
       el('form', {
+        class: 'formular',
         onsubmit: async (e) => {
           e.preventDefault();
-          fehler.textContent = status.textContent = '';
-          if (pin1.value !== pin2.value) return void (fehler.textContent = 'Die beiden PINs stimmen nicht überein');
-          try {
-            await setzePin(pin1.value);
+          await speichern();
+        },
+      }, feld(gesetzt ? 'Neuer PIN (4 Ziffern)' : 'PIN (4 Ziffern)', pin1), feld('PIN wiederholen', pin2),
+      el('div', { class: 'leiste' },
+        el('button', { type: 'submit' }, gesetzt ? 'PIN ändern' : 'PIN setzen'),
+        gesetzt ? el('button', {
+          type: 'button',
+          class: 'zweit',
+          onclick: async () => {
+            if (!(await bestaetige('PIN entfernen? Der Admin-Bereich ist dann ohne PIN erreichbar.', 'PIN entfernen'))) return;
+            await geraetSchreiben(db(), 'pin', undefined);
             await zeichne();
-            status.textContent = 'PIN gespeichert';
-          } catch (x) {
-            fehler.textContent = speicherFehlerText(x).replace('Speichern fehlgeschlagen: ', '');
-          }
-        },
-      }, feld(gesetzt ? 'Neuer PIN (4 Ziffern)' : 'PIN (4 Ziffern)', pin1), feld('PIN wiederholen', pin2), el('p', {}, el('button', { type: 'submit' }, gesetzt ? 'PIN ändern' : 'PIN setzen'))),
-      gesetzt ? el('button', {
-        type: 'button',
-        class: 'zweit',
-        onclick: async () => {
-          if (!(await bestaetige('PIN entfernen? Der Admin-Bereich ist dann ohne PIN erreichbar.', 'PIN entfernen'))) return;
-          await geraetSchreiben(db(), 'pin', undefined);
-          await zeichne();
-          status.textContent = 'PIN entfernt';
-        },
-      }, 'PIN entfernen') : '',
+            status.textContent = 'PIN entfernt';
+          },
+        }, 'PIN entfernen') : '')),
       fehler,
       status,
+      hilfe('datensicherheit', 'PIN'),
     );
   };
   await zeichne();
-  return bereich;
+  return {
+    knoten: bereich,
+    speichern: () => speichern(),
+    /** @param {() => void} f */
+    nachSpeichern: (f) => { gemerkt = f; },
+  };
 }
 
 async function speicherBereich() {
   const s = navigator.storage;
   let text = 'Dieser Browser kann dauerhaften Speicher nicht melden.';
   if (s && typeof s.persisted === 'function') {
-    text = (await s.persisted()) ? 'Dauerhafter Speicher ist gewährt: Der Browser löscht die Daten nicht von selbst.' : 'Dauerhafter Speicher ist nicht gewährt: Der Browser kann die Daten bei Speichermangel löschen. Regelmäßig sichern.';
+    text = (await s.persisted().catch(() => false)) ? 'Dauerhafter Speicher ist gewährt: Der Browser löscht die Daten nicht von selbst.' : 'Dauerhafter Speicher ist nicht gewährt: Der Browser kann die Daten bei Speichermangel löschen. Regelmäßig sichern.';
   }
-  return el('section', { 'aria-labelledby': 'speicher-titel' }, el('h2', { id: 'speicher-titel' }, 'Speicher'), el('p', { id: 'speicher-status' }, text), hilfe('sicherung-und-projekt', 'Datenerhalt'));
+  return el('section', { class: 'tafel', 'aria-labelledby': 'speicher-titel' }, el('h2', { id: 'speicher-titel' }, 'Speicher'), el('p', { id: 'speicher-status' }, text), hilfe('sicherung-und-projekt', 'Datenerhalt'));
 }
 
-function laden() {
+// ---------- Daten ----------
+
+async function laden() {
   const fehler = fehlerZeile();
   const status = statusZeile();
   const datei = el('input', { id: 'datei', type: 'file', accept: '.json,application/json' });
   const knopf = el('button', { type: 'submit' }, 'Laden');
-  seite(
-    'Sicherung laden',
-    el('p', {}, 'Lädt eine Sicherung oder ein leeres Projekt. Alle Daten am Gerät werden ersetzt.'),
-    hilfe('sicherung-und-projekt', 'Sicherung laden'),
+  await rahmen('laden', 'Sicherung laden',
+    el('p', { class: 'einleitung' }, 'Lädt eine Sicherung oder ein leeres Projekt. Alle Daten am Gerät werden ersetzt.'),
     el('form', {
+      class: 'formular tafel',
       onsubmit: async (e) => {
         e.preventDefault();
         fehler.textContent = status.textContent = '';
@@ -464,14 +710,14 @@ function laden() {
         }
         knopf.disabled = false;
       },
-    }, feld('Datei (.json)', datei), el('p', {}, knopf)),
+    }, feld('Datei (.json)', datei), el('div', { class: 'leiste' }, knopf)),
     fehler,
     status,
-    zurueck(),
+    hilfe('sicherung-und-projekt', 'Sicherung laden'),
   );
 }
 
-function exporte() {
+async function exporte() {
   const fehler = fehlerZeile();
   const status = statusZeile();
   /** @param {() => Promise<void>} aktion */
@@ -484,64 +730,60 @@ function exporte() {
       fehler.textContent = meldung(x);
     }
   };
-  seite(
-    'Exporte',
-    el('h2', {}, 'Sicherung'),
-    el('p', {}, 'Alle Daten außer PIN und Geräte-Kennung. Mit „Sicherung laden“ wird der Zustand wiederhergestellt.'),
-    el('button', { type: 'button', onclick: sicher(exportiereSicherung) }, 'Sicherung exportieren'),
-    hilfe('sicherung-und-projekt', 'Sicherung'),
-    el('h2', {}, 'Leeres Projekt'),
-    el('p', {}, 'Mitglieder, Artikel und Einstellungen ohne Buchungen, z. B. für ein neues Semester.'),
-    el('button', {
-      type: 'button',
-      onclick: sicher(async () => {
-        const wahl = await frage('Guthaben im neuen Projekt?', [['null', 'Guthaben auf 0 setzen'], ['uebernehmen', 'Guthaben übernehmen'], ['abbrechen', 'Abbrechen']]);
-        if (wahl === 'abbrechen') throw new PruefFehler('Abgebrochen');
-        const daten = await alleDaten(db());
-        herunterladen(dateiname('projekt'), dateiInhalt('projekt', leeresProjekt(daten, wahl === 'uebernehmen', zustand.geraet)), 'application/json');
-        if (wahl === 'null') herunterladen(csvName('abrechnung_v1.csv'), abrechnungCsv(daten.mitglieder, daten.buchungen), 'text/csv');
-      }),
-    }, 'Leeres Projekt exportieren'),
-    hilfe('sicherung-und-projekt', 'Leeres Projekt'),
-    el('h2', {}, 'Umstieg ins Vollsystem'),
-    el('p', {}, 'Drei CSV-Dateien für den Import in ein leeres Ergo-Bibamus-Vollsystem.'),
-    el('p', {}, 'Vollsystem: ', el('a', { href: VOLLSYSTEM_URL, rel: 'noopener noreferrer' }, VOLLSYSTEM_URL)),
-    el('div', { class: 'leiste' },
-      el('button', { type: 'button', onclick: sicher(async () => herunterladen(csvName(MITGLIEDER_DATEI), mitgliederCsv((await alleDaten(db())).mitglieder, /** @type {Projekt} */ (zustand.projekt)), 'text/csv')) }, MITGLIEDER_DATEI),
-      el('button', { type: 'button', onclick: sicher(async () => herunterladen(csvName(ARTIKEL_DATEI), artikelCsv((await alleDaten(db())).artikel), 'text/csv')) }, ARTIKEL_DATEI),
-      el('button', { type: 'button', onclick: sicher(async () => herunterladen(csvName(GUTHABEN_DATEI), guthabenCsv((await alleDaten(db())).mitglieder), 'text/csv')) }, GUTHABEN_DATEI),
-    ),
-    hilfe('umstieg-ins-vollsystem', 'Umstieg'),
+  /** @param {string} titel @param {string} text @param {...Kind} teile */
+  const block = (titel, text, ...teile) => el('section', { class: 'tafel' }, el('h2', {}, titel), el('p', {}, text), ...teile);
+  await rahmen('exporte', 'Exporte',
+    block('Sicherung', 'Alle Daten außer PIN und Geräte-Kennung. Mit „Sicherung laden“ wird der Zustand wiederhergestellt.',
+      el('div', { class: 'leiste' }, el('button', { type: 'button', onclick: sicher(exportiereSicherung) }, 'Sicherung herunterladen'), hilfe('sicherung-und-projekt', 'Sicherung'))),
+    block('Leeres Projekt', 'Mitglieder, Artikel und Einstellungen ohne Buchungen, z. B. für ein neues Semester.',
+      el('div', { class: 'leiste' }, el('button', {
+        type: 'button',
+        class: 'zweit',
+        onclick: sicher(async () => {
+          const wahl = await frage('Guthaben im neuen Projekt?', [['null', 'Guthaben auf 0 setzen'], ['uebernehmen', 'Guthaben übernehmen'], ['abbrechen', 'Abbrechen']]);
+          if (wahl === 'abbrechen') throw new PruefFehler('Abgebrochen');
+          const daten = await alleDaten(db());
+          herunterladen(dateiname('projekt'), dateiInhalt('projekt', leeresProjekt(daten, wahl === 'uebernehmen', zustand.geraet)), 'application/json');
+          if (wahl === 'null') herunterladen(csvName('abrechnung_v1.csv'), abrechnungCsv(daten.mitglieder, daten.buchungen), 'text/csv');
+        }),
+      }, 'Leeres Projekt exportieren'), hilfe('sicherung-und-projekt', 'Leeres Projekt'))),
+    block('Umstieg ins Vollsystem', 'Drei CSV-Dateien für den Import in ein leeres Ergo-Bibamus-Vollsystem.',
+      el('p', {}, 'Vollsystem: ', el('a', { href: VOLLSYSTEM_URL, rel: 'noopener noreferrer' }, VOLLSYSTEM_URL)),
+      el('div', { class: 'leiste' },
+        el('button', { type: 'button', class: 'zweit', onclick: sicher(async () => herunterladen(csvName(MITGLIEDER_DATEI), mitgliederCsv((await alleDaten(db())).mitglieder, /** @type {Projekt} */ (zustand.projekt)), 'text/csv')) }, MITGLIEDER_DATEI),
+        el('button', { type: 'button', class: 'zweit', onclick: sicher(async () => herunterladen(csvName(ARTIKEL_DATEI), artikelCsv((await alleDaten(db())).artikel), 'text/csv')) }, ARTIKEL_DATEI),
+        el('button', { type: 'button', class: 'zweit', onclick: sicher(async () => herunterladen(csvName(GUTHABEN_DATEI), guthabenCsv((await alleDaten(db())).mitglieder), 'text/csv')) }, GUTHABEN_DATEI),
+      ),
+      hilfe('umstieg-ins-vollsystem', 'Umstieg')),
     fehler,
     status,
-    zurueck(),
   );
 }
 
-function zuruecksetzen() {
+async function zuruecksetzen() {
   const fehler = fehlerZeile();
-  seite(
-    'Gerät zurücksetzen',
-    el('p', {}, 'Löscht alle Daten dieses Geräts, auch den PIN und die Demo. Danach startet µEBS wie beim ersten Mal.'),
-    el('button', {
-      type: 'button',
-      onclick: async () => {
-        try {
-          if (!(await vorherSichern())) return;
-          if (!(await bestaetige('Alle Daten und der PIN werden gelöscht.', 'Weiter'))) return;
-          if (!(await bestaetige('Wirklich endgültig löschen? Das lässt sich nicht rückgängig machen.', 'Endgültig löschen'))) return;
-          zustand.db?.close();
-          zustand.echt?.close();
-          await loescheDb(DB_DEMO);
-          await loescheDb(DB_ECHT);
-          location.hash = '#/';
-          location.reload();
-        } catch (x) {
-          fehler.textContent = speicherFehlerText(x);
-        }
-      },
-    }, 'Gerät zurücksetzen'),
+  await rahmen('zuruecksetzen', 'Gerät zurücksetzen',
+    el('section', { class: 'tafel' },
+      el('p', {}, 'Löscht alle Daten dieses Geräts, auch den PIN und die Demo. Danach startet µEBS wie beim ersten Mal.'),
+      el('div', { class: 'leiste' }, el('button', {
+        type: 'button',
+        class: 'gefahr',
+        onclick: async () => {
+          try {
+            if (!(await vorherSichern())) return;
+            if (!(await bestaetige('Alle Daten und der PIN werden gelöscht.', 'Weiter'))) return;
+            if (!(await bestaetige('Wirklich endgültig löschen? Das lässt sich nicht rückgängig machen.', 'Endgültig löschen'))) return;
+            zustand.db?.close();
+            zustand.echt?.close();
+            await loescheDb(DB_DEMO);
+            await loescheDb(DB_ECHT);
+            location.hash = '#/';
+            location.reload();
+          } catch (x) {
+            fehler.textContent = speicherFehlerText(x);
+          }
+        },
+      }, 'Gerät zurücksetzen'))),
     fehler,
-    zurueck(),
   );
 }

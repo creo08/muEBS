@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { datenbank, projektDatei, starteMit } from './hilfen.js';
+import { aufbuchen, datenbank, projektDatei, starteMit } from './hilfen.js';
 
 /** Projekt mit Alex bei -25,00 € (unter der Grenze -20,00 €). */
 function geschwaerzt(aktiv = true, modus = 'deckel') {
@@ -24,15 +24,30 @@ test('Schwärzung ein: geschwärzt kann keine Artikel buchen, aber kassieren und
   await expect(page.locator('#saldo')).toHaveText('offen 15,00 €');
   await expect(page.getByRole('button', { name: 'Bier 3,50 €' })).toBeDisabled();
   // Aufbuchung im Admin-Bereich bleibt möglich und hebt bei >= 0 auf
-  await page.goto(basis + '#/admin/aufbuchung');
-  await page.getByLabel('Mitglied', { exact: true }).selectOption({ label: 'Alex Beispiel (Lexi)' });
-  await page.getByLabel('Betrag in Euro').fill('15');
-  await page.getByRole('button', { name: 'Aufbuchen' }).click();
-  await expect(page.getByRole('status')).toContainText('aufgebucht');
+  await aufbuchen(page, 'Alex', '15');
   await page.goto(basis + '#/buchen/1');
   await expect(page.getByRole('button', { name: 'Bier 3,50 €' })).toBeEnabled();
   const d = await datenbank(page);
   expect(d.mitglieder[0]).toMatchObject({ guthaben: 0, geschwaerzt: false });
+});
+
+test('Storno der Buchung, die die Schwärzung ausgelöst hat, hebt sie auf (auch unter 0)', async ({ page, basis }) => {
+  const p = projektDatei({ modus: 'vorauszahlung', schwaerzung_aktiv: true });
+  p.typ = 'sicherung';
+  p.mitglieder[0].guthaben = -1000;
+  p.buchungen.push({ id: '0b6b2c1e-3f5d-4a8e-9c1b-2d3e4f5a6b7c', geraet_id: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', typ: 'uebertrag', mitglied_id: 1, artikel_id: null, storno_von: null, menge: 1, preis_pro_einheit: -1000, gesamtpreis: -1000, zeitstempel: '2026-01-01T10:00:00.000Z' });
+  await starteMit(page, basis, p);
+  await page.goto(basis + '#/buchen/1');
+  for (let i = 0; i < 5; i++) await page.getByRole('button', { name: 'Bier 3,50 €' }).click();
+  await page.getByRole('button', { name: 'Jetzt 17,50 € buchen' }).click();
+  await expect(page.getByRole('heading', { name: 'µEBS', exact: true })).toBeVisible();
+  expect((await datenbank(page)).mitglieder[0]).toMatchObject({ guthaben: -2750, geschwaerzt: true });
+  await page.goto(basis + '#/buchen/1');
+  await page.getByRole('button', { name: 'Storno', exact: true }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Stornieren' }).click();
+  await expect(page.locator('#saldo')).toHaveText('\u221210,00 €');
+  expect((await datenbank(page)).mitglieder[0]).toMatchObject({ guthaben: -1000, geschwaerzt: false });
+  await expect(page.getByRole('button', { name: 'Bier 3,50 €' })).toBeEnabled();
 });
 
 test('Schwärzung aus: keine schwarze Kachel, Buchen möglich', async ({ page, basis }) => {

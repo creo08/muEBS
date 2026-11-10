@@ -2,7 +2,7 @@
 // IndexedDB-Zugriff. Jede schreibende Aktion läuft in genau einer Transaktion
 // und gilt erst nach oncomplete als gespeichert.
 import { DB_VERSION, MAX_BETRAG, MAX_PREIS } from './konstanten.js';
-import { gesamtpreis, istGeschwaerzt, schwaerzung, stornierte, textFehler } from './regeln.js';
+import { gesamtpreis, istGeschwaerzt, schwaerzungAusVerlauf, stornierte, textFehler } from './regeln.js';
 
 /** @typedef {import('./regeln.js').Projekt} Projekt */
 /** @typedef {import('./regeln.js').Mitglied} Mitglied */
@@ -278,14 +278,19 @@ function pruefeText(wert, feld, min, max) {
 }
 
 /**
- * Guthaben ändern und Schwärzungs-Merker nachführen.
+ * Guthaben ändern und den Schwärzungs-Merker aus dem ganzen Verlauf neu bestimmen.
+ * @param {IDBTransaction} tx
  * @param {Mitglied} m
  * @param {number} betrag
- * @param {Projekt} projekt
+ * @param {Buchung[]} neue in dieser Transaktion angehängte Buchungen
  */
-function bucheAuf(m, betrag, projekt) {
+async function bucheAuf(tx, m, betrag, neue) {
+  const projekt = /** @type {Projekt} */ (await anfrage(tx.objectStore('projekt').get('einstellungen')));
+  const bisher = /** @type {Buchung[]} */ (await anfrage(tx.objectStore('buchung').index('mitglied_id').getAll(m.id)));
+  const ids = new Set(bisher.map((b) => b.id));
   m.guthaben += betrag;
-  m.geschwaerzt = schwaerzung(m.geschwaerzt, m.guthaben, projekt.schwaerzungs_grenze);
+  m.geschwaerzt = schwaerzungAusVerlauf([...bisher, ...neue.filter((b) => !ids.has(b.id))], projekt.schwaerzungs_grenze);
+  tx.objectStore('mitglied').put(m);
 }
 
 /**
@@ -294,13 +299,21 @@ function bucheAuf(m, betrag, projekt) {
  * @param {Projekt} projekt
  */
 export function speichereProjekt(db, projekt) {
-  return transaktion(db, ['projekt', 'mitglied'], 'readwrite', async (tx) => {
+  return transaktion(db, ['projekt', 'mitglied', 'buchung'], 'readwrite', async (tx) => {
     const alt = /** @type {Projekt | undefined} */ (await anfrage(tx.objectStore('projekt').get('einstellungen')));
     tx.objectStore('projekt').put(projekt, 'einstellungen');
-    if (alt && alt.schwaerzungs_grenze === projekt.schwaerzungs_grenze && alt.schwaerzung_aktiv === projekt.schwaerzung_aktiv) return;
+    if (alt && alt.schwaerzungs_grenze === projekt.schwaerzungs_grenze) return;
+    // neue Grenze: Merker für alle aus dem Verlauf neu bestimmen (selten, darf alle Buchungen lesen)
+    /** @type {Map<number, Buchung[]>} */
+    const jeMitglied = new Map();
+    for (const b of /** @type {Buchung[]} */ (await anfrage(tx.objectStore('buchung').getAll()))) {
+      const liste = jeMitglied.get(b.mitglied_id) ?? [];
+      liste.push(b);
+      jeMitglied.set(b.mitglied_id, liste);
+    }
     const s = tx.objectStore('mitglied');
     for (const m of /** @type {Mitglied[]} */ (await anfrage(s.getAll()))) {
-      const neu = m.guthaben < projekt.schwaerzungs_grenze;
+      const neu = schwaerzungAusVerlauf(jeMitglied.get(m.id) ?? [], projekt.schwaerzungs_grenze);
       if (neu !== m.geschwaerzt) s.put({ ...m, geschwaerzt: neu });
     }
   });
@@ -414,6 +427,8 @@ export function bucheBestellung(db, geraet, mitgliedId, posten) {
     if (!m || !m.aktiv) throw new Error('Mitglied nicht gefunden');
     if (istGeschwaerzt(projekt, m)) throw new Error('Geschwärzt: Artikel können nicht gebucht werden');
     const zeit = new Date().toISOString();
+    /** @type {Buchung[]} */
+    const neue = [];
     let summe = 0;
     for (const [artikelId, menge] of posten) {
       const a = /** @type {Artikel | undefined} */ (await anfrage(tx.objectStore('artikel').get(artikelId)));
@@ -421,10 +436,10 @@ export function bucheBestellung(db, geraet, mitgliedId, posten) {
       if (!Number.isInteger(menge) || menge < 1 || menge > 1000) throw new Error('Ungültige Menge');
       const b = buchung(geraet, { typ: 'artikel', mitglied_id: m.id, artikel_id: a.id, menge, preis_pro_einheit: a.preis }, zeit);
       summe += b.gesamtpreis;
+      neue.push(b);
       tx.objectStore('buchung').add(b);
     }
-    bucheAuf(m, summe, projekt);
-    tx.objectStore('mitglied').put(m);
+    await bucheAuf(tx, m, summe, neue);
   });
 }
 
@@ -439,13 +454,11 @@ export function bucheBestellung(db, geraet, mitgliedId, posten) {
 export function bucheBetrag(db, geraet, mitgliedId, typ, betrag) {
   if (!Number.isInteger(betrag) || betrag < 1 || betrag > MAX_BETRAG) return Promise.reject(new Error('Ungültiger Betrag'));
   return transaktion(db, ['projekt', 'mitglied', 'buchung'], 'readwrite', async (tx) => {
-    const projekt = /** @type {Projekt} */ (await anfrage(tx.objectStore('projekt').get('einstellungen')));
     const m = /** @type {Mitglied | undefined} */ (await anfrage(tx.objectStore('mitglied').get(mitgliedId)));
     if (!m) throw new Error('Mitglied nicht gefunden');
     const b = buchung(geraet, { typ, mitglied_id: m.id, menge: 1, preis_pro_einheit: betrag }, new Date().toISOString());
     tx.objectStore('buchung').add(b);
-    bucheAuf(m, b.gesamtpreis, projekt);
-    tx.objectStore('mitglied').put(m);
+    await bucheAuf(tx, m, b.gesamtpreis, [b]);
   });
 }
 
@@ -462,13 +475,12 @@ export function schalteStorno(db, geraet, buchungId) {
     const original = /** @type {Buchung | undefined} */ (await anfrage(bs.get(buchungId)));
     if (!original) throw new Error('Buchung nicht gefunden');
     if (original.typ === 'storno') throw new Error('Ein Storno-Eintrag kann nicht storniert werden');
-    const projekt = /** @type {Projekt} */ (await anfrage(tx.objectStore('projekt').get('einstellungen')));
     const m = /** @type {Mitglied} */ (await anfrage(tx.objectStore('mitglied').get(original.mitglied_id)));
     const alle = /** @type {Buchung[]} */ (await anfrage(bs.index('mitglied_id').getAll(original.mitglied_id)));
     const jetztStorniert = !stornierte(alle).has(original.id);
-    bs.add(buchung(geraet, { typ: 'storno', mitglied_id: m.id, storno_von: original.id, menge: 1, preis_pro_einheit: 0 }, new Date().toISOString()));
-    bucheAuf(m, jetztStorniert ? -original.gesamtpreis : original.gesamtpreis, projekt);
-    tx.objectStore('mitglied').put(m);
+    const storno = buchung(geraet, { typ: 'storno', mitglied_id: m.id, storno_von: original.id, menge: 1, preis_pro_einheit: 0 }, new Date().toISOString());
+    bs.add(storno);
+    await bucheAuf(tx, m, jetztStorniert ? -original.gesamtpreis : original.gesamtpreis, [storno]);
     return jetztStorniert;
   });
 }

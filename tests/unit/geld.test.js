@@ -27,7 +27,7 @@ test('Cent als Text', () => {
 });
 
 test('Saldo-Anzeige je Modus', () => {
-  assert.equal(saldoText(-350, 'vorauszahlung'), '-3,50 €');
+  assert.equal(saldoText(-350, 'vorauszahlung'), '\u22123,50 €');
   assert.equal(saldoText(-350, 'deckel'), 'offen 3,50 €');
   assert.equal(saldoText(0, 'deckel'), '');
   assert.equal(saldoText(500, 'deckel'), 'Guthaben 5,00 €');

@@ -25,7 +25,8 @@ export function centText(cent) {
 
 /** @param {number} cent */
 export function euro(cent) {
-  return centText(cent) + ' €';
+  // echtes Minuszeichen für die Anzeige; CSV nutzt centText() mit Bindestrich
+  return (cent < 0 ? '\u2212' : '') + centText(Math.abs(cent)) + ' €';
 }
 
 /**

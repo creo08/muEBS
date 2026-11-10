@@ -40,12 +40,12 @@ test('Kassieren im Deckel-Modus: voll, teilweise, Storno, Aufstellung seit letzt
 
   // Kassierliste
   await page.goto(basis + '#/kassierliste');
-  await expect(page.getByText('Summe offen: 6,00 €')).toBeVisible();
-  await expect(page.getByText(/Kassiert seit .*: 7,00 €/)).toBeVisible();
+  await expect(page.locator('#summe-offen')).toHaveText('6,00 €');
+  await expect(page.locator('#summe-kassiert')).toHaveText('7,00 €');
   await page.getByRole('button', { name: 'bezahlt' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Bezahlt' }).click();
   await expect(page.getByText('Niemand hat etwas offen.')).toBeVisible();
-  await expect(page.getByText(/Kassiert seit .*: 13,00 €/)).toBeVisible();
+  await expect(page.locator('#summe-kassiert')).toHaveText('13,00 €');
   await datenbank(page);
   // Guthaben im Deckel-Modus
   await page.goto(basis + '#/buchen/2');

@@ -12,6 +12,12 @@
  * @property {ServiceWorker | null} wartend
  * @property {boolean} entsperrt
  * @property {number} letzteEingabe
+ * @property {Wache | null} wache ungespeicherte Änderungen der aktuellen Seite
+ */
+/**
+ * @typedef {object} Wache
+ * @property {() => boolean} ungespeichert
+ * @property {() => Promise<boolean>} speichern true = gespeichert, die Seite darf verlassen werden
  */
 
 /** @type {Zustand} */
@@ -25,6 +31,7 @@ export const zustand = {
   wartend: null,
   entsperrt: false,
   letzteEingabe: 0,
+  wache: null,
 };
 
 /** Aktive Datenbank; vor dem Start der Oberfläche immer gesetzt. */

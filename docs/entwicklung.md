@@ -61,7 +61,7 @@ IndexedDB-Datenbank `muebs` (Demo: `muebs_demo`), Version 1:
 | `artikel` | `id` | `id`, `name`, `preis` (Cent), `reihenfolge`, `aktiv` |
 | `buchung` | `id` (UUID) | `geraet_id`, `typ`, `mitglied_id`, `artikel_id`, `storno_von`, `menge`, `preis_pro_einheit`, `gesamtpreis`, `zeitstempel`; Indizes `mitglied_id` und `zeitstempel` |
 
-- `geschwaerzt` ist ein Merker für die Hysterese der Schwärzung (an unter der Grenze, aus erst bei Guthaben ≥ 0). Er lässt sich nicht aus dem aktuellen Guthaben allein ableiten.
+- `geschwaerzt` ist ein Merker für die Schwärzung. Er ergibt sich immer aus dem Verlauf der gültigen Buchungen (`schwaerzungAusVerlauf()` in `js/regeln.js`: an unter der Grenze, aus erst bei Guthaben ≥ 0). So hebt ein Storno die Schwärzung auf, die die stornierte Buchung ausgelöst hat. Der Import prüft den Merker genau gegen diesen Verlauf.
 - Buchungen werden nur angehängt. Ein Storno-Eintrag schaltet seine Originalbuchung um; „storniert“ wird abgeleitet.
 - `mitglied.guthaben` wird in derselben Transaktion wie die Buchung nachgeführt und muss immer der Summe der nicht stornierten Buchungen entsprechen. Die E2E-Tests prüfen das nach jeder Aktion.
 - Migrationen nur in `onupgradeneeded` (`migriere()` in `js/db.js`), vorher schlägt die App eine Sicherung vor.
@@ -77,7 +77,7 @@ Playwright-WebKit ist nicht iOS Safari. Vor jedem Release auf einem echten iPhon
 1. **Installieren:** Seite öffnen, zum Homescreen hinzufügen, vom Homescreen starten. Version im Hinweis stimmt.
 2. **Buchen:** Demo starten, ein Mitglied öffnen, zwei Artikel buchen, Startseite zeigt das neue Guthaben. Ein Storno und „Storno aufheben“.
 3. **Offline neu laden:** Flugmodus ein, App schließen und neu öffnen, eine Buchung machen. Flugmodus aus.
-4. **Sichern:** „Sicherung exportieren“, Datei landet in „Dateien“ bzw. „Downloads“.
+4. **Sichern:** „Sicherung“ in der Kopfleiste, Datei landet in „Dateien“ bzw. „Downloads“.
 5. **Laden:** Demo beenden, die Sicherung über „Sicherung/Projekt laden“ laden – erwartet wird die Ablehnung als Demo-Datei. Dann mit einer echten Sicherung wiederholen; Daten sind vollständig da.
 6. **Update:** Nach dem Deploy erscheint auf der Startseite „Neue Version – jetzt laden“; nach dem Tippen zeigt der Hinweis die neue Version.
 

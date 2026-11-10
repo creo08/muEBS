@@ -54,10 +54,22 @@ for (const s of schemen) {
       assert.ok(k2 >= 4.5, `${f} als Text auf Hintergrund: ${k2.toFixed(2)}`);
     }
     assert.ok(kontrast(s.v.hintergrund, global['text-dunkel']) >= 4.5, 'Text auf Hintergrund');
+    assert.ok(kontrast(s.v.hintergrund, global['text-leise']) >= 4.5, 'leiser Text auf Hintergrund');
+    assert.ok(kontrast(s.v.sekundaer, global['text-leise']) >= 4.5, 'leiser Text auf Sekundärfarbe (Tabellen, Navigation)');
+    assert.ok(kontrast(s.v.hintergrund, global['fehler']) >= 4.5, 'Fehlertext auf Hintergrund');
+    for (const f of ['haupt', 'hover']) assert.ok(kontrast(s.v[f], global['flaeche']) >= 4.5, `${f} auf Fläche`);
     assert.ok(kontrast(s.v.sekundaer, global['text-dunkel']) >= 4.5, 'Text auf Sekundärfarbe');
   });
 }
 
 test('geschwärzte Kachel ist schwarz mit weißer Schrift', () => {
-  assert.match(app, /\.geschwaerzt\s*\{[^}]*background:\s*#000;[^}]*color:\s*#fff;/);
+  assert.equal(global['geschwaerzt-hg'], '#000000');
+  assert.equal(global['geschwaerzt-text'], '#FFFFFF');
+  assert.match(app, /\.geschwaerzt\s*\{[^}]*background:\s*var\(--geschwaerzt-hg\);[^}]*color:\s*var\(--geschwaerzt-text\);/);
+});
+
+test('Fläche und Fehler: Text lesbar', () => {
+  for (const t of ['text-dunkel', 'text-leise', 'fehler']) assert.ok(kontrast(global['flaeche'], global[t]) >= 4.5, t);
+  assert.ok(kontrast(global['fehler-flaeche'], global['fehler']) >= 4.5, 'Fehler auf Fehlerfläche');
+  assert.ok(kontrast(global['text-dunkel'], global['text-hell']) >= 4.5, 'Banner');
 });

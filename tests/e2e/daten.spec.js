@@ -34,18 +34,22 @@ test('Gerät zurücksetzen: Sicherungsvorschlag, doppelte Rückfrage, alles weg,
 test('ids von Mitgliedern und Artikeln werden nach Deaktivieren nie neu vergeben', async ({ page, basis }) => {
   await starteMit(page, basis, projektDatei());
   await page.goto(basis + '#/admin/mitglieder');
-  const form = page.getByRole('form', { name: 'Mitglied Bente Muster' });
-  await form.getByLabel('aktiv').uncheck();
-  await form.getByRole('button', { name: 'Speichern' }).click();
+  await page.getByRole('link', { name: 'Bente Muster' }).click();
+  await page.getByLabel(/^aktiv/).uncheck();
+  await page.getByRole('button', { name: 'Speichern' }).click();
   await expect(page.getByText('Bente Muster gespeichert')).toBeVisible();
+  await page.getByRole('link', { name: 'Zur Liste' }).click();
+  await expect(page.getByRole('row').filter({ hasText: 'Bente Muster' })).toContainText('inaktiv');
+  await page.getByRole('link', { name: 'Neues Mitglied' }).click();
   await page.locator('#neu-name').fill('Chris Probe');
   await page.getByRole('button', { name: 'Mitglied anlegen' }).click();
   await expect(page.getByText('Chris Probe angelegt (Nr. 3)')).toBeVisible();
   await page.goto(basis + '#/admin/artikel');
-  const limo = page.getByRole('form', { name: 'Artikel Limo' });
-  await limo.getByLabel('aktiv').uncheck();
-  await limo.getByRole('button', { name: 'Speichern' }).click();
+  await page.getByRole('link', { name: 'Limo' }).click();
+  await page.getByLabel(/^aktiv/).uncheck();
+  await page.getByRole('button', { name: 'Speichern' }).click();
   await expect(page.getByText('Limo gespeichert')).toBeVisible();
+  await page.goto(basis + '#/admin/artikel/neu');
   await page.locator('#neu-artikel').fill('Saft');
   await page.locator('#neu-preis').fill('2');
   await page.getByRole('button', { name: 'Artikel anlegen' }).click();

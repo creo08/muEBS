@@ -1,18 +1,9 @@
 import { test, expect } from './fixtures.js';
-import { datenbank, projektDatei, starteMit } from './hilfen.js';
-
-/** @param {import('@playwright/test').Page} page @param {string} name @param {string} betrag */
-async function aufbuchen(page, name, betrag) {
-  await page.goto(page.url().split('#')[0] + '#/admin/aufbuchung');
-  await page.getByLabel('Mitglied', { exact: true }).selectOption({ label: name });
-  await page.getByLabel('Betrag in Euro').fill(betrag);
-  await page.getByRole('button', { name: 'Aufbuchen' }).click();
-  await expect(page.getByRole('status')).toContainText('aufgebucht');
-}
+import { aufbuchen, datenbank, projektDatei, starteMit } from './hilfen.js';
 
 test('Guthabenrechnung und Bestellung bis zur Bestätigung, Doppeltipp bucht nur einmal', async ({ page, basis }) => {
   await starteMit(page, basis, projektDatei());
-  await aufbuchen(page, 'Alex Beispiel (Lexi)', '20');
+  await aufbuchen(page, 'Lexi', '20');
   await datenbank(page);
   await page.goto(basis + '#/buchen/1');
   await expect(page.locator('#saldo')).toHaveText('20,00 €');
