@@ -84,12 +84,16 @@ function migriere(db, alt, neu) {
  * @param {string} name
  * @param {number | undefined} version
  * @param {Haken} haken
- * @returns {Promise<IDBDatabase>}
+ * @returns {Promise<{db: IDBDatabase, neu: boolean}>} neu = gerade erst angelegt
  */
 function oeffneRoh(name, version, haken) {
   return new Promise((ok, nein) => {
+    let neu = false;
     const r = version === undefined ? indexedDB.open(name) : indexedDB.open(name, version);
-    r.onupgradeneeded = (e) => migriere(r.result, e.oldVersion, e.newVersion ?? 1);
+    r.onupgradeneeded = (e) => {
+      neu = e.oldVersion === 0;
+      migriere(r.result, e.oldVersion, e.newVersion ?? 1);
+    };
     r.onblocked = haken.blockiert;
     r.onerror = () => nein(r.error);
     r.onsuccess = () => {
@@ -98,7 +102,7 @@ function oeffneRoh(name, version, haken) {
         db.close();
         location.reload();
       };
-      ok(db);
+      ok({ db, neu });
     };
   });
 }
@@ -110,18 +114,19 @@ function oeffneRoh(name, version, haken) {
  */
 export async function oeffne(name, haken) {
   // Ohne Versionsangabe öffnen, um die gespeicherte Version zu sehen.
-  const db = await oeffneRoh(name, undefined, haken);
+  const { db, neu } = await oeffneRoh(name, undefined, haken);
   if (db.version === DB_VERSION) return db;
   if (db.version > DB_VERSION) {
     db.close();
     throw new Error('Die Daten stammen aus einer neueren µEBS-Version.');
   }
-  if (!(await haken.vorMigration(db))) {
+  // Eine gerade angelegte Datenbank ist leer: nichts zu sichern
+  if (!neu && !(await haken.vorMigration(db))) {
     db.close();
     throw new Error('Aktualisierung der Daten abgebrochen.');
   }
   db.close();
-  return oeffneRoh(name, DB_VERSION, haken);
+  return (await oeffneRoh(name, DB_VERSION, haken)).db;
 }
 
 /**

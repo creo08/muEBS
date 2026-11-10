@@ -43,17 +43,25 @@ function fehler(text) {
   throw new PruefFehler(text);
 }
 
+/** Fremden Text für Meldungen kürzen. @param {string} text */
+const kurz = (text) => (text.length > 40 ? text.slice(0, 40) + '…' : text);
+
 /**
- * Lehnt verbotene Schlüssel an jeder Stelle ab.
+ * Lehnt verbotene Schlüssel an jeder Stelle ab und begrenzt die Tiefe
+ * (das Format ist höchstens 3 Ebenen tief; tiefer würde nur den Stack erschöpfen).
  * @param {unknown} wert
+ * @param {number} [tiefe]
  */
-function pruefeSchluessel(wert) {
-  if (Array.isArray(wert)) wert.forEach(pruefeSchluessel);
-  else if (wert !== null && typeof wert === 'object') {
-    for (const k of Object.keys(wert)) {
-      if (VERBOTEN.has(k)) fehler(`Unzulässiger Schlüssel „${k}“`);
-      pruefeSchluessel(/** @type {Record<string, unknown>} */ (wert)[k]);
-    }
+function pruefeSchluessel(wert, tiefe = 0) {
+  if (wert === null || typeof wert !== 'object') return;
+  if (tiefe > 8) fehler('Datei ist zu tief verschachtelt');
+  if (Array.isArray(wert)) {
+    for (const w of wert) pruefeSchluessel(w, tiefe + 1);
+    return;
+  }
+  for (const k of Object.keys(wert)) {
+    if (VERBOTEN.has(k)) fehler(`Unzulässiger Schlüssel „${k}“`);
+    pruefeSchluessel(/** @type {Record<string, unknown>} */ (wert)[k], tiefe + 1);
   }
 }
 
@@ -68,7 +76,7 @@ function pruefeSchluessel(wert) {
 function objekt(wert, ort, felder, optional = []) {
   if (wert === null || typeof wert !== 'object' || Array.isArray(wert)) fehler(`${ort}: Objekt erwartet`);
   const o = /** @type {Record<string, unknown>} */ (wert);
-  for (const k of Object.keys(o)) if (!felder.includes(k) && !optional.includes(k)) fehler(`${ort}: unbekanntes Feld „${k}“`);
+  for (const k of Object.keys(o)) if (!felder.includes(k) && !optional.includes(k)) fehler(`${ort}: unbekanntes Feld „${kurz(k)}“`);
   for (const k of felder) if (!Object.hasOwn(o, k)) fehler(`${ort}: Feld „${k}“ fehlt`);
   return o;
 }

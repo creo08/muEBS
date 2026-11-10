@@ -1,6 +1,6 @@
 // @ts-check
 // Admin-Bereich: Aufbuchung, Mitglieder, Artikel, Einstellungen, Laden, Exporte, Zurücksetzen.
-import { DB_DEMO, DB_ECHT, SCHEMEN, SPERRE_NACH_MS } from './konstanten.js';
+import { DB_DEMO, DB_ECHT, SCHEMEN, SPERRE_NACH_MS, VOLLSYSTEM_URL } from './konstanten.js';
 import { centText, euro, euroZuCent, saldoText } from './geld.js';
 import { nachName, textFehler, speicherFehlerText } from './regeln.js';
 import {
@@ -51,6 +51,12 @@ async function pinStimmt(pin) {
   return Boolean(gespeichert) && (await pinHash(pin, gespeichert?.salz ?? '')) === gespeichert?.hash;
 }
 
+// shortcut: Zähler nur im Speicher, ein Neuladen setzt ihn zurück; reicht für einen Bedienschutz am Tresen
+let fehlversuche = 0;
+let pinGesperrtBis = 0;
+const MAX_FEHLVERSUCHE = 5;
+const PIN_PAUSE_MS = 30000;
+
 /** Entsperrt bis „Sperren“ oder 5 Minuten ohne Eingabe. */
 export function istEntsperrt() {
   return zustand.entsperrt && Date.now() - zustand.letzteEingabe < SPERRE_NACH_MS;
@@ -65,12 +71,21 @@ function pinSeite(weiter) {
     el('form', {
       onsubmit: async (e) => {
         e.preventDefault();
+        fehler.textContent = '';
+        const warten = Math.ceil((pinGesperrtBis - Date.now()) / 1000);
+        if (warten > 0) {
+          fehler.textContent = `Zu viele Fehlversuche. Bitte in ${warten} s erneut versuchen.`;
+          return;
+        }
         if (await pinStimmt(pin.value)) {
+          fehlversuche = 0;
           zustand.entsperrt = true;
           zustand.letzteEingabe = Date.now();
           weiter();
         } else {
-          fehler.textContent = 'PIN falsch';
+          // nach 5 Fehlversuchen 30 s Pause, danach nach jedem weiteren Fehlversuch erneut
+          if (++fehlversuche >= MAX_FEHLVERSUCHE) pinGesperrtBis = Date.now() + PIN_PAUSE_MS;
+          fehler.textContent = fehlversuche >= MAX_FEHLVERSUCHE ? `PIN falsch. Bitte in ${PIN_PAUSE_MS / 1000} s erneut versuchen.` : 'PIN falsch';
           pin.value = '';
           pin.focus();
         }
@@ -490,6 +505,7 @@ function exporte() {
     hilfe('sicherung-und-projekt', 'Leeres Projekt'),
     el('h2', {}, 'Umstieg ins Vollsystem'),
     el('p', {}, 'Drei CSV-Dateien für den Import in ein leeres Ergo-Bibamus-Vollsystem.'),
+    el('p', {}, 'Vollsystem: ', el('a', { href: VOLLSYSTEM_URL, rel: 'noopener noreferrer' }, VOLLSYSTEM_URL)),
     el('div', { class: 'leiste' },
       el('button', { type: 'button', onclick: sicher(async () => herunterladen(csvName(MITGLIEDER_DATEI), mitgliederCsv((await alleDaten(db())).mitglieder, /** @type {Projekt} */ (zustand.projekt)), 'text/csv')) }, MITGLIEDER_DATEI),
       el('button', { type: 'button', onclick: sicher(async () => herunterladen(csvName(ARTIKEL_DATEI), artikelCsv((await alleDaten(db())).artikel), 'text/csv')) }, ARTIKEL_DATEI),

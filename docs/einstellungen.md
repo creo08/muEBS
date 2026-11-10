@@ -25,6 +25,7 @@ Die Einstellungen gehören zum Projekt und stehen in jeder Sicherung – außer 
 
 - Ist ein PIN gesetzt, fragt µEBS beim Öffnen des Admin-Bereichs danach.
 - Der Bereich bleibt entsperrt, bis „Sperren“ angetippt wird oder 5 Minuten lang keine Eingabe erfolgt.
+- Nach 5 falschen PINs nimmt µEBS 30 Sekunden lang keinen PIN an, danach nach jedem weiteren Fehlversuch erneut.
 - „PIN entfernen“ hebt die Sperre auf.
 - Ohne PIN erreichbar bleiben: Buchen, Storno, Kassieren, Kassierliste und „Sicherung exportieren“ auf der Startseite.
 - Der PIN ist nur ein Bedienschutz, siehe [Datensicherheit](datensicherheit.md).

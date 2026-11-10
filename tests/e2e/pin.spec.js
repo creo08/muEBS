@@ -32,6 +32,32 @@ test('PIN sperrt den Admin-Bereich, Sicherung geht ohne PIN, PIN nie in Sicherun
   for (const geheim of [JSON.stringify(geraet.pin), '"pin"']) expect(p.text).not.toContain(geheim);
 });
 
+test('nach 5 falschen PINs 30 Sekunden Pause, danach geht der richtige PIN', async ({ page, basis }) => {
+  await page.clock.install();
+  await starteMit(page, basis, projektDatei());
+  await page.goto(basis + '#/admin/einstellungen');
+  await page.getByLabel('PIN (4 Ziffern)').fill('2468');
+  await page.getByLabel('PIN wiederholen').fill('2468');
+  await page.getByRole('button', { name: 'PIN setzen' }).click();
+  await expect(page.getByText('PIN gespeichert')).toBeVisible();
+  await page.goto(basis + '#/admin');
+  await page.getByRole('button', { name: 'Sperren' }).click();
+  await page.getByRole('link', { name: 'Admin-Bereich' }).click();
+  for (let i = 1; i <= 5; i++) {
+    await page.getByLabel('PIN').fill('0000');
+    await page.getByRole('button', { name: 'Entsperren' }).click();
+    await expect(page.getByRole('alert')).toHaveText(i < 5 ? 'PIN falsch' : 'PIN falsch. Bitte in 30 s erneut versuchen.');
+  }
+  // auch der richtige PIN wird während der Pause nicht geprüft
+  await page.getByLabel('PIN').fill('2468');
+  await page.getByRole('button', { name: 'Entsperren' }).click();
+  await expect(page.getByRole('alert')).toContainText('Zu viele Fehlversuche');
+  await page.clock.fastForward('00:31');
+  await page.getByLabel('PIN').fill('2468');
+  await page.getByRole('button', { name: 'Entsperren' }).click();
+  await expect(page.getByRole('heading', { name: 'Admin-Bereich', exact: true })).toBeVisible();
+});
+
 test('Sperre nach 5 Minuten ohne Eingabe', async ({ page, basis }) => {
   await page.clock.install();
   await starteMit(page, basis, projektDatei());
