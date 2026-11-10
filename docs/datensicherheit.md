@@ -11,7 +11,7 @@ Die Seite „Datenschutz“ (erreichbar von der Init-Seite und aus dem Admin-Ber
 - GitHub protokolliert beim Laden der App die IP-Adresse.
 - µEBS nutzt keine Analytics, kein Tracking und sendet keine Fehlerberichte.
 - Der PIN ist nur ein Bedienschutz.
-- Eine geschwärzte Kachel sehen alle am Tresen.
+- Eine geschwärzte Kachel sehen alle an der Schank.
 
 Der Hinweis ist keine Datenschutzerklärung und keine Vorlage dafür. Wer µEBS für eine Gruppe betreibt, klärt die Pflichten selbst.
 
@@ -23,7 +23,7 @@ Es gibt keine Schriften, Skripte, Bilder oder Styles von fremden Servern.
 
 ## Der PIN ist nur Bedienschutz
 
-Der PIN hält am Tresen davon ab, versehentlich oder neugierig in den Admin-Bereich zu gehen. Er schützt die Daten nicht:
+Der PIN hält an der Schank davon ab, versehentlich oder neugierig in den Admin-Bereich zu gehen. Er schützt die Daten nicht:
 
 - Wer das Gerät entsperrt in der Hand hat, kann die Daten über die Entwicklerwerkzeuge des Browsers lesen oder ändern.
 - „Sicherung“ in der Kopfleiste geht immer ohne PIN.
@@ -31,7 +31,7 @@ Der PIN hält am Tresen davon ab, versehentlich oder neugierig in den Admin-Bere
 
 ## Schwärzung ist sichtbar
 
-Eine geschwärzte Kachel zeigt allen, die am Tresen stehen, dass jemand unter der Grenze liegt. Wer das nicht möchte, schaltet die Schwärzung in den [Einstellungen](einstellungen.md) aus.
+Eine geschwärzte Kachel zeigt allen, die an der Schank stehen, dass jemand unter der Grenze liegt. Wer das nicht möchte, schaltet die Schwärzung in den [Einstellungen](einstellungen.md) aus.
 
 ## Content-Security-Policy und ihre Grenzen
 

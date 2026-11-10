@@ -55,7 +55,7 @@ async function pinStimmt(pin) {
   return Boolean(gespeichert) && (await pinHash(pin, gespeichert?.salz ?? '')) === gespeichert?.hash;
 }
 
-// shortcut: Zähler nur im Speicher, ein Neuladen setzt ihn zurück; reicht für einen Bedienschutz am Tresen
+// shortcut: Zähler nur im Speicher, ein Neuladen setzt ihn zurück; reicht für einen Bedienschutz an der Schank
 let fehlversuche = 0;
 let pinGesperrtBis = 0;
 const MAX_FEHLVERSUCHE = 5;
@@ -117,7 +117,7 @@ const meldung = (f) => (f instanceof PruefFehler ? f.message : speicherFehlerTex
 
 /** Navigation in Gruppen; ab Tablet-Breite als Seitenleiste. */
 const GRUPPEN = /** @type {Array<[string, Array<[string, string]>]>} */ ([
-  ['Am Tresen', [['aufbuchung', 'Aufbuchung (Einzahlung)']]],
+  ['An der Schank', [['aufbuchung', 'Aufbuchung (Einzahlung)']]],
   ['Stammdaten', [['mitglieder', 'Mitglieder'], ['artikel', 'Artikel']]],
   ['Projekt', [['einstellungen', 'Einstellungen'], ['exporte', 'Exporte'], ['laden', 'Sicherung laden']]],
   ['Gerät', [['datenschutz', 'Datenschutz'], ['zuruecksetzen', 'Gerät zurücksetzen']]],
@@ -407,7 +407,7 @@ async function mitgliedBearbeiten(id) {
   };
   const form = el('form', { class: 'formular' },
     feld('Name', name), feld('Spitzname', nick),
-    el('label', { class: 'wahl-zeile', for: aktiv.id }, aktiv, 'aktiv (inaktive erscheinen nicht am Tresen; die Nr. wird nie neu vergeben)'),
+    el('label', { class: 'wahl-zeile', for: aktiv.id }, aktiv, 'aktiv (inaktive erscheinen nicht an der Schank; die Nr. wird nie neu vergeben)'),
     el('div', { class: 'leiste' }, el('button', { type: 'submit' }, 'Speichern'), el('a', { class: 'knopf zweit', href: '#/admin/mitglieder' }, 'Zur Liste')));
   const wache = bewache([form], speichern);
   form.addEventListener('submit', async (e) => {
@@ -533,7 +533,7 @@ async function artikelBearbeiten(id) {
   };
   const form = el('form', { class: 'formular' },
     feld('Name', name), feld('Preis in Euro', preis), feld('Reihenfolge', reihe),
-    el('label', { class: 'wahl-zeile', for: aktiv.id }, aktiv, 'aktiv (inaktive erscheinen nicht am Tresen; die Nr. wird nie neu vergeben)'),
+    el('label', { class: 'wahl-zeile', for: aktiv.id }, aktiv, 'aktiv (inaktive erscheinen nicht an der Schank; die Nr. wird nie neu vergeben)'),
     el('div', { class: 'leiste' }, el('button', { type: 'submit' }, 'Speichern'), el('a', { class: 'knopf zweit', href: '#/admin/artikel' }, 'Zur Liste')));
   const wache = bewache([form], speichern);
   form.addEventListener('submit', async (e) => {
@@ -775,10 +775,11 @@ async function zuruecksetzen() {
             if (!(await bestaetige('Wirklich endgültig löschen? Das lässt sich nicht rückgängig machen.', 'Endgültig löschen'))) return;
             zustand.db?.close();
             zustand.echt?.close();
-            await loescheDb(DB_DEMO);
-            await loescheDb(DB_ECHT);
-            location.hash = '#/';
-            location.reload();
+            const blockiert = () => { fehler.textContent = 'Bitte andere µEBS-Fenster und Browser-Tabs schließen. Das Zurücksetzen geht danach von selbst weiter.'; };
+            await loescheDb(DB_DEMO, blockiert);
+            await loescheDb(DB_ECHT, blockiert);
+            // ohne Hash neu laden: kein Zeichnen mehr mit der geschlossenen Datenbank
+            location.replace(location.pathname + location.search);
           } catch (x) {
             fehler.textContent = speicherFehlerText(x);
           }

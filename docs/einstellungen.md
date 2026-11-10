@@ -24,7 +24,7 @@ Wer die Einstellungen (oder ein Mitglied, einen Artikel) geändert hat und die S
 - Ausnahme Storno: Wird die Buchung storniert, die die Schwärzung ausgelöst hat, verschwindet auch die Schwärzung, selbst wenn das Guthaben noch unter 0 liegt. µEBS bestimmt die Schwärzung dafür immer aus dem Verlauf der gültigen Buchungen.
 - Geschwärzte Mitglieder erscheinen als schwarze Kachel und können keine Artikel buchen. Kassieren und Aufbuchung bleiben möglich, ebenso Storno.
 - Wird die Schwärzung eingeschaltet oder die Grenze geändert, berechnet µEBS den Zustand aller Mitglieder neu: geschwärzt ist dann, wer unter der neuen Grenze liegt.
-- Eine geschwärzte Kachel sehen alle am Tresen.
+- Eine geschwärzte Kachel sehen alle an der Schank.
 
 ## PIN
 

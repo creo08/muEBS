@@ -1,7 +1,7 @@
 /* Hallmark · shape: app screen · genre: modern-minimal · theme: custom (Farbschemen des Projekts)
  * paper: var(--hintergrund) aus schemen.css · accent: var(--haupt) · display: Systemschrift · body: Systemschrift
- * nav: Kopfleiste, Admin mit Seitenleiste ab 60rem · signature: die Kachelwand am Tresen und der Bon · states: leer, Fehler, voll
- * axes: hell/system/schema · posture: Tablet am Tresen, Handy möglich · contrast: pass (tests/unit/kontrast.test.js) · v2.0.0 */
+ * nav: Kopfleiste, Admin mit Seitenleiste ab 60rem · signature: die Kachelwand an der Schank und der Bon · states: leer, Fehler, voll
+ * axes: hell/system/schema · posture: Tablet an der Schank, Handy möglich · contrast: pass (tests/unit/kontrast.test.js) · v2.0.0 */
 /* Hallmark · pre-emit critique: P3 H- E3 S3 R3 V3 · weakest: Startseite ohne Buchungen ist leer (Vorgabe), Suche steht dafür groß oben */
 /* Hallmark · waive 7b: Schwärzung ist laut Vorgabe #000 mit weißer Schrift · waive 19: Banner-Text „Neue Version – jetzt laden“ ist vorgegeben
  * Hallmark · answered 48: die [data-schema]-Blöcke in schemen.css sind die Theme-Token-Blöcke (Vorgabe); sloplint kennt nur data-theme/mode/scheme */

@@ -6,7 +6,7 @@ Strichliste als Offline-Web-App für Vereins- und Verbindungsbars: Daten bleiben
 
 ## Was µEBS kann
 
-- **Stricheln am Tresen:** Mitgliederkacheln mit Suche, Bestellung per Tipp, Buchung mit einem Knopf, Storno und Storno aufheben.
+- **Stricheln an der Schank:** Mitgliederkacheln mit Suche, Bestellung per Tipp, Buchung mit einem Knopf, Storno und Storno aufheben.
 - **Zwei Modi:** Vorauszahlung (erst aufbuchen) oder Deckel (stricheln, dann kassieren, mit Kassierliste).
 - **Schwärzung:** Wer unter eine Grenze fällt, wird schwarz angezeigt und kann keine Artikel buchen, bis das Guthaben wieder bei 0 liegt.
 - **Offline:** Nach dem ersten Laden läuft µEBS ohne Internet und lässt sich auf dem Homescreen installieren.

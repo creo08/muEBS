@@ -1,6 +1,6 @@
 // @ts-check
-// Einstieg: Funktionsprüfung, Datenbank, Routen und die Seiten für den Tresen.
-import { BUCHUNGEN_ANZEIGE, DB_DEMO, DB_ECHT, HOTLIST_TAGE, SCHEMEN, STANDARD_GRENZE } from './konstanten.js';
+// Einstieg: Funktionsprüfung, Datenbank, Routen und die Seiten für die Schank.
+import { BUCHUNGEN_ANZEIGE, DB_DEMO, DB_ECHT, HOTLIST_TAGE, SCHEMEN, STANDARD_GRENZE, START_WARTEN_MS } from './konstanten.js';
 import { centText, euro, euroZuCent, saldoText } from './geld.js';
 import { aufstellung, hotlist, istGeschwaerzt, kassiertagBeginn, gueltige, nachName, speicherFehlerText, stornierte } from './regeln.js';
 import {
@@ -37,14 +37,23 @@ function fehlendeFunktionen() {
   return fehlt;
 }
 
-/** @param {string} text */
-function zeigeFatal(text) {
-  seite('µEBS kann nicht starten', el('p', { role: 'alert', class: 'fehler' }, text), el('p', {}, 'Bitte einen aktuellen Browser verwenden (iOS Safari ab 16.4 oder aktuelles Chrome).'));
+/**
+ * @param {string} text
+ * @param {string} [rat]
+ */
+function zeigeFatal(text, rat = 'Bitte einen aktuellen Browser verwenden (iOS Safari ab 16.4 oder aktuelles Chrome).') {
+  seiteMit({ titel: 'µEBS kann nicht starten', art: 'schmal' },
+    el('p', { role: 'alert', class: 'fehler' }, text),
+    el('p', {}, rat),
+    el('div', { class: 'leiste' }, el('button', { type: 'button', onclick: () => location.reload() }, 'Neu laden')));
 }
+
+const FENSTER_RAT = 'Bitte alle anderen µEBS-Fenster und Browser-Tabs schließen und µEBS neu laden.';
+
 
 /** @type {import('./db.js').Haken} */
 const haken = {
-  blockiert: () => zeigeFatal('Bitte andere µEBS-Fenster schließen'),
+  blockiert: () => zeigeFatal('Bitte andere µEBS-Fenster schließen', FENSTER_RAT),
   // Die Sicherung liest aus der alten Datenbank, solange zustand.db noch nicht gesetzt ist
   vorMigration: async (alt) => {
     zustand.db = alt;
@@ -56,6 +65,8 @@ async function start() {
   const fehlt = fehlendeFunktionen();
   if (fehlt.length) return zeigeFatal(`Diesem Browser fehlt: ${fehlt.join(', ')}.`);
   registriereServiceWorker().catch((f) => zeigeSwHinweis(`Offline-Betrieb nicht verfügbar: ${f instanceof Error ? f.message : String(f)}`));
+  // Wächter: wartet das Öffnen der Daten zu lange (z. B. auf ein anderes Fenster), klare Meldung statt „wird geladen“
+  const waechter = setTimeout(() => zeigeFatal('µEBS wartet auf die Daten.', FENSTER_RAT), START_WARTEN_MS);
   try {
     zustand.echt = await oeffne(DB_ECHT, haken);
     zustand.db = zustand.echt;
@@ -64,8 +75,10 @@ async function start() {
     zustand.geraet = await geraetId(db());
     zustand.projekt = (await ladeProjekt(db())) ?? null;
   } catch (f) {
-    return zeigeFatal(`Die Daten können nicht geöffnet werden: ${f instanceof Error ? f.message : String(f)}`);
+    clearTimeout(waechter);
+    return zeigeFatal(`Die Daten können nicht geöffnet werden: ${f instanceof Error ? f.message : String(f)}`, FENSTER_RAT);
   }
+  clearTimeout(waechter);
   // nicht abwarten: ein Fehler hier darf den Start nie blockieren
   if (navigator.storage && typeof navigator.storage.persist === 'function') {
     navigator.storage.persisted().then((ja) => ja || navigator.storage.persist()).catch(() => undefined);
@@ -482,7 +495,7 @@ function initSeite() {
   const datei = el('input', { id: 'init-datei', type: 'file', accept: '.json,application/json' });
   seiteMit(
     { titel: 'Willkommen bei µEBS', art: 'schmal' },
-    el('p', { class: 'einleitung' }, 'Eine Strichliste für den Tresen. Die Daten bleiben auf diesem Gerät. Hier gibt es noch keine.'),
+    el('p', { class: 'einleitung' }, 'Eine Strichliste für die Schank. Die Daten bleiben auf diesem Gerät. Hier gibt es noch keine.'),
     el('div', { class: 'wahl-liste' },
       el('a', { class: 'knopf gross', href: '#/neu' }, 'Neues Projekt'),
       el('button', { type: 'button', class: 'zweit gross', onclick: starteDemo }, 'Demo ansehen'),
@@ -655,7 +668,7 @@ async function starteDemo() {
 async function beendeDemo() {
   const echt = /** @type {IDBDatabase} */ (zustand.echt);
   zustand.db?.close();
-  await loescheDb(DB_DEMO);
+  await loescheDb(DB_DEMO, () => melde('Bitte andere µEBS-Fenster schließen'));
   await geraetSchreiben(echt, 'demo_aktiv', undefined);
   zustand.db = echt;
   zustand.demo = false;
@@ -758,4 +771,4 @@ function ladeNeueVersion() {
   zustand.wartend.postMessage('skipWaiting');
 }
 
-start();
+start().catch((f) => zeigeFatal(`Fehler beim Start: ${f instanceof Error ? f.message : String(f)}`, FENSTER_RAT));
