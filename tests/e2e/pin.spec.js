@@ -27,8 +27,8 @@ test('PIN sperrt den Admin-Bereich, Sicherung geht ohne PIN, PIN nie in Sicherun
   await page.getByRole('button', { name: 'Entsperren' }).click();
   await expect(page.getByRole('heading', { name: 'Admin-Bereich', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Exporte' }).click();
-  await page.getByRole('button', { name: 'Leeres Projekt exportieren' }).click();
-  const p = await download(page, () => page.getByRole('dialog').getByRole('button', { name: 'Guthaben übernehmen' }).click());
+  await page.getByLabel('Guthaben übernehmen (je Mitglied ein Übertrag)').check();
+  const p = await download(page, () => page.getByRole('button', { name: 'Projekt speichern' }).click());
   for (const geheim of [JSON.stringify(geraet.pin), '"pin"']) expect(p.text).not.toContain(geheim);
 });
 

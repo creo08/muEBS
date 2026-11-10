@@ -1,0 +1,4 @@
+﻿"id";"reihenfolge";"name";"preis";"aktiv";"typ"
+1;1;"Bier ""Hell""";3,50;1;"stueck"
+2;2;"Limo";2,50;1;"stueck"
+3;3;"Saft";1,99;0;"stueck"

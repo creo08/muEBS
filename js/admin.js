@@ -12,7 +12,7 @@ import { leeresProjekt } from './projekt.js';
 import { abrechnungCsv } from './csv.js';
 import { datenschutzInhalt } from './datenschutz.js';
 import { ARTIKEL_DATEI, GUTHABEN_DATEI, MITGLIEDER_DATEI, artikelCsv, guthabenCsv, mitgliederCsv } from './umstieg.js';
-import { bestaetige, csvName, dateiname, el, fehlerZeile, frage, herunterladen, hilfe, seiteMit, statusZeile, zeitText } from './dom.js';
+import { bestaetige, csvName, dateiname, el, fehlerZeile, herunterladen, hilfe, seiteMit, statusZeile, zeitText } from './dom.js';
 import { exportiereSicherung, dateiInhalt, importiere, vorherSichern } from './sicherung.js';
 import { PruefFehler } from './schema.js';
 import { db, zustand } from './zustand.js';
@@ -720,12 +720,11 @@ async function laden() {
 async function exporte() {
   const fehler = fehlerZeile();
   const status = statusZeile();
-  /** @param {() => Promise<void>} aktion */
+  /** @param {() => Promise<string | void>} aktion liefert optional eine eigene Erfolgsmeldung */
   const sicher = (aktion) => async () => {
     fehler.textContent = status.textContent = '';
     try {
-      await aktion();
-      status.textContent = 'Export erstellt';
+      status.textContent = (await aktion()) || 'Export erstellt';
     } catch (x) {
       fehler.textContent = meldung(x);
     }
@@ -735,18 +734,7 @@ async function exporte() {
   await rahmen('exporte', 'Exporte',
     block('Sicherung', 'Alle Daten außer PIN und Geräte-Kennung. Mit „Sicherung laden“ wird der Zustand wiederhergestellt.',
       el('div', { class: 'leiste' }, el('button', { type: 'button', onclick: sicher(exportiereSicherung) }, 'Sicherung herunterladen'), hilfe('sicherung-und-projekt', 'Sicherung'))),
-    block('Leeres Projekt', 'Mitglieder, Artikel und Einstellungen ohne Buchungen, z. B. für ein neues Semester.',
-      el('div', { class: 'leiste' }, el('button', {
-        type: 'button',
-        class: 'zweit',
-        onclick: sicher(async () => {
-          const wahl = await frage('Guthaben im neuen Projekt?', [['null', 'Guthaben auf 0 setzen'], ['uebernehmen', 'Guthaben übernehmen'], ['abbrechen', 'Abbrechen']]);
-          if (wahl === 'abbrechen') throw new PruefFehler('Abgebrochen');
-          const daten = await alleDaten(db());
-          herunterladen(dateiname('projekt'), dateiInhalt('projekt', leeresProjekt(daten, wahl === 'uebernehmen', zustand.geraet)), 'application/json');
-          if (wahl === 'null') herunterladen(csvName('abrechnung_v1.csv'), abrechnungCsv(daten.mitglieder, daten.buchungen), 'text/csv');
-        }),
-      }, 'Leeres Projekt exportieren'), hilfe('sicherung-und-projekt', 'Leeres Projekt'))),
+    leeresProjektBlock(sicher),
     block('Umstieg ins Vollsystem', 'Drei CSV-Dateien für den Import in ein leeres Ergo-Bibamus-Vollsystem.',
       el('p', {}, 'Vollsystem: ', el('a', { href: VOLLSYSTEM_URL, rel: 'noopener noreferrer' }, VOLLSYSTEM_URL)),
       el('div', { class: 'leiste' },
@@ -757,6 +745,52 @@ async function exporte() {
       hilfe('umstieg-ins-vollsystem', 'Umstieg')),
     fehler,
     status,
+  );
+}
+
+/**
+ * Leeres Projekt: nur ein Export, die Daten am Gerät bleiben unverändert.
+ * iOS erlaubt pro Tipp nur einen Download: bei „Guthaben auf 0“ erst die Abrechnung, dann das Projekt.
+ * @param {(aktion: () => Promise<string | void>) => () => Promise<void>} sicher
+ */
+function leeresProjektBlock(sicher) {
+  /** Datenstand der gespeicherten Abrechnung; das Projekt entsteht aus genau diesem Stand. */
+  /** @type {import('./schema.js').Daten | null} */
+  let stand = null;
+  /** @param {string} wert @param {string} text */
+  const option = (wert, text) => el('label', { class: 'wahl-zeile' }, el('input', { type: 'radio', name: 'leeres-projekt', value: wert, checked: wert === 'null' }), text);
+  const wahl = el('fieldset', {}, el('legend', {}, 'Guthaben im neuen Projekt'),
+    option('null', 'Guthaben auf 0 setzen (mit Abrechnung)'),
+    option('uebernehmen', 'Guthaben übernehmen (je Mitglied ein Übertrag)'));
+  const uebernehmen = () => /** @type {HTMLInputElement | null} */ (wahl.querySelector('input:checked'))?.value === 'uebernehmen';
+  const projektKnopf = el('button', { type: 'button', class: 'zweit' }, 'Projekt speichern');
+  const abrechnungKnopf = el('button', { type: 'button', class: 'zweit' }, 'Abrechnung speichern');
+  const zeichne = () => {
+    abrechnungKnopf.hidden = uebernehmen();
+    projektKnopf.disabled = !uebernehmen() && !stand;
+  };
+  wahl.addEventListener('change', () => {
+    stand = null;
+    zeichne();
+  });
+  abrechnungKnopf.addEventListener('click', sicher(async () => {
+    stand = await alleDaten(db());
+    herunterladen(csvName('abrechnung_v1.csv'), abrechnungCsv(stand.mitglieder, stand.buchungen), 'text/csv');
+    zeichne();
+    return 'Abrechnung gespeichert. Jetzt das Projekt speichern.';
+  }));
+  projektKnopf.addEventListener('click', sicher(async () => {
+    const daten = uebernehmen() ? await alleDaten(db()) : stand;
+    if (!daten) throw new PruefFehler('Bitte zuerst die Abrechnung speichern');
+    herunterladen(dateiname('projekt'), dateiInhalt('projekt', leeresProjekt(daten, uebernehmen(), zustand.geraet)), 'application/json');
+    return 'Projekt gespeichert. Die Daten an diesem Gerät sind unverändert.';
+  }));
+  zeichne();
+  return el('section', { class: 'tafel' },
+    el('h2', {}, 'Leeres Projekt'),
+    el('p', {}, 'Mitglieder, Artikel und Einstellungen für einen Neustart, z. B. ein neues Semester. Nur ein Export: Die Daten an diesem Gerät bleiben unverändert.'),
+    wahl,
+    el('div', { class: 'leiste' }, abrechnungKnopf, projektKnopf, hilfe('sicherung-und-projekt', 'Leeres Projekt')),
   );
 }
 
