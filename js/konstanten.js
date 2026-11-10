@@ -3,7 +3,7 @@
 
 export const DB_ECHT = 'muebs';
 export const DB_DEMO = 'muebs_demo';
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 /** Höchste Formatversion von Sicherung und Projekt, die diese App kennt. */
 export const FORMAT = 1;

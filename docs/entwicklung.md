@@ -51,7 +51,7 @@ Lokal ansehen: `node -e "import('./tests/server.js').then(async (m) => console.l
 
 ## Datenmodell
 
-IndexedDB-Datenbank `muebs` (Demo: `muebs_demo`), Version 1:
+IndexedDB-Datenbank `muebs` (Demo: `muebs_demo`), Version 2:
 
 | Store | Schlüssel | Inhalt |
 |---|---|---|
@@ -61,10 +61,10 @@ IndexedDB-Datenbank `muebs` (Demo: `muebs_demo`), Version 1:
 | `artikel` | `id` | `id`, `name`, `preis` (Cent), `reihenfolge`, `aktiv` |
 | `buchung` | `id` (UUID) | `geraet_id`, `typ`, `mitglied_id`, `artikel_id`, `storno_von`, `menge`, `preis_pro_einheit`, `gesamtpreis`, `zeitstempel`; Indizes `mitglied_id` und `zeitstempel` |
 
-- `geschwaerzt` ist ein Merker für die Schwärzung. Er ergibt sich immer aus dem Verlauf der gültigen Buchungen (`schwaerzungAusVerlauf()` in `js/regeln.js`: an unter der Grenze, aus erst bei Guthaben ≥ 0). So hebt ein Storno die Schwärzung auf, die die stornierte Buchung ausgelöst hat. Der Import prüft den Merker genau gegen diesen Verlauf.
+- `geschwaerzt` ist ein Merker für die Schwärzung. Er ergibt sich immer aus dem Verlauf der gültigen Buchungen (`schwaerzungAusVerlauf()` in `js/regeln.js`: an unter der Grenze, aus erst bei Guthaben ≥ 0). So hebt ein Storno die Schwärzung auf, die die stornierte Buchung ausgelöst hat. Der Import übernimmt den Merker nicht aus der Datei, sondern bestimmt ihn aus dem Verlauf; so bleiben auch Sicherungen aus v0.1.0 ladbar.
 - Buchungen werden nur angehängt. Ein Storno-Eintrag schaltet seine Originalbuchung um; „storniert“ wird abgeleitet.
 - `mitglied.guthaben` wird in derselben Transaktion wie die Buchung nachgeführt und muss immer der Summe der nicht stornierten Buchungen entsprechen. Die E2E-Tests prüfen das nach jeder Aktion.
-- Migrationen nur in `onupgradeneeded` (`migriere()` in `js/db.js`), vorher schlägt die App eine Sicherung vor.
+- Migrationen nur in `onupgradeneeded` (`migriere()` in `js/db.js`), vorher schlägt die App eine Sicherung vor. Version 2 bestimmt den Schwärzungs-Merker aller Mitglieder einmal aus dem Verlauf neu (v0.1.0 hatte ihn nur schrittweise nachgeführt).
 
 ## Release
 

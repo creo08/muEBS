@@ -58,10 +58,11 @@ function transaktion(db, stores, modus, arbeit) {
  * Schema-Migration, nur hier und nur in onupgradeneeded. Jeder Schritt läuft nur bis zur Zielversion,
  * denn eine neue Datenbank wird zuerst ohne Versionsangabe (also als Version 1) angelegt.
  * @param {IDBDatabase} db
+ * @param {IDBTransaction} tx die Versions-Transaktion von onupgradeneeded
  * @param {number} alt
  * @param {number} neu
  */
-function migriere(db, alt, neu) {
+function migriere(db, tx, alt, neu) {
   if (alt < 1 && neu >= 1) {
     db.createObjectStore('geraet');
     db.createObjectStore('projekt');
@@ -71,7 +72,29 @@ function migriere(db, alt, neu) {
     buchung.createIndex('mitglied_id', 'mitglied_id');
     buchung.createIndex('zeitstempel', 'zeitstempel');
   }
-  // Spätere Versionen: if (alt < 2 && neu >= 2) { … }
+  if (alt < 2 && neu >= 2) {
+    // v0.1.0 führte den Schwärzungs-Merker nur schrittweise nach; einmal aus dem Verlauf neu bestimmen.
+    // Anfragen einer Transaktion werden der Reihe nach erledigt: beim letzten liegen alle Ergebnisse vor.
+    const projekt = tx.objectStore('projekt').get('einstellungen');
+    const buchungen = tx.objectStore('buchung').getAll();
+    const mitglieder = tx.objectStore('mitglied').getAll();
+    mitglieder.onsuccess = () => {
+      const p = /** @type {Projekt | undefined} */ (projekt.result);
+      if (!p) return;
+      /** @type {Map<number, Buchung[]>} */
+      const jeMitglied = new Map();
+      for (const b of /** @type {Buchung[]} */ (buchungen.result)) {
+        const liste = jeMitglied.get(b.mitglied_id) ?? [];
+        liste.push(b);
+        jeMitglied.set(b.mitglied_id, liste);
+      }
+      for (const m of /** @type {Mitglied[]} */ (mitglieder.result)) {
+        const richtig = schwaerzungAusVerlauf(jeMitglied.get(m.id) ?? [], p.schwaerzungs_grenze);
+        if (richtig !== m.geschwaerzt) tx.objectStore('mitglied').put({ ...m, geschwaerzt: richtig });
+      }
+    };
+  }
+  // Spätere Versionen: if (alt < 3 && neu >= 3) { … }
 }
 
 /**
@@ -92,7 +115,7 @@ function oeffneRoh(name, version, haken) {
     const r = version === undefined ? indexedDB.open(name) : indexedDB.open(name, version);
     r.onupgradeneeded = (e) => {
       neu = e.oldVersion === 0;
-      migriere(r.result, e.oldVersion, e.newVersion ?? 1);
+      migriere(r.result, /** @type {IDBTransaction} */ (r.transaction), e.oldVersion, e.newVersion ?? 1);
     };
     r.onblocked = haken.blockiert;
     r.onerror = () => nein(r.error);

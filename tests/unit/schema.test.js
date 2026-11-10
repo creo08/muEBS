@@ -61,7 +61,6 @@ test('Typen, Felder, Verweise und Stimmigkeit', () => {
     [(d) => { d.buchungen.find((x) => x.typ === 'storno').storno_von = '11111111-2222-4333-8444-555555555555'; }, /gibt/],
     [(d) => { const s = d.buchungen.find((x) => x.typ === 'storno'); d.buchungen.push({ ...s, id: '11111111-2222-4333-8444-555555555555', storno_von: s.id }); }, /Storno-Eintrag/],
     [(d) => { d.mitglieder[0].guthaben += 1; }, new RegExp(MELDUNG_UNSTIMMIG)],
-    [(d) => { d.mitglieder[2].geschwaerzt = false; }, new RegExp(MELDUNG_UNSTIMMIG)],
     [(d) => { d.projekt.schwaerzungs_grenze = 100; }, /schwaerzungs_grenze/],
     [(d) => { d.projekt.farbschema = 'pink'; }, /Farbschema/],
     [(d) => { d.typ = 'irgendwas'; }, /typ/],
@@ -75,6 +74,14 @@ test('tief verschachtelte Datei wird sauber abgelehnt, lange Feldnamen gekürzt'
   assert.throws(() => pruefeDatei({ ...datei(), buchungen: tief }, { echt: false }), /zu tief verschachtelt/);
   const lang = 'x'.repeat(100000);
   assert.throws(() => pruefeDatei(mit((d) => { d.mitglieder[0][lang] = 1; }), { echt: false }), (f) => f.message.length < 200);
+});
+
+test('Schwärzungs-Merker wird aus dem Verlauf bestimmt, nicht aus der Datei übernommen', () => {
+  const roh = datei();
+  const vorher = roh.mitglieder.map((m) => m.geschwaerzt);
+  for (const m of roh.mitglieder) m.geschwaerzt = !m.geschwaerzt;
+  const d = pruefeDatei(roh, { echt: false });
+  assert.deepEqual(d.mitglieder.map((m) => m.geschwaerzt), vorher);
 });
 
 test('Keine Datei', () => {
