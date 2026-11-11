@@ -23,8 +23,8 @@ test('Guthabenrechnung und Bestellung bis zur Bestätigung, Doppeltipp bucht nur
   expect(d.buchungen.filter((b) => b.typ === 'artikel')).toHaveLength(1);
   expect(d.buchungen.find((b) => b.typ === 'artikel')).toMatchObject({ menge: 2, preis_pro_einheit: 350, gesamtpreis: -700, artikel_id: 1, storno_von: null });
   expect(d.mitglieder.find((m) => m.id === 1).guthaben).toBe(1300);
-  // Hotlist zeigt jetzt Alex
-  await expect(page.locator('.kachel')).toHaveText(/Alex Beispiel/);
+  // Hotlist zeigt Alex (Umsatz) und füllt mit Bente auf, alphabetisch
+  await expect(page.locator('.kachel .name')).toHaveText(['Alex Beispiel', 'Bente Muster']);
 });
 
 test('Buchen-Seite: unbekannte id führt zur Startseite', async ({ page, basis }) => {

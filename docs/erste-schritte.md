@@ -43,12 +43,12 @@ Texte dürfen nicht mit `=`, `+`, `-` oder `@` beginnen (Schutz für Tabellenpro
 
 ## 5. Die erste Buchung
 
-1. Auf der Startseite den Namen ins Suchfeld tippen. Ohne Buchungen ist die Startseite noch leer; die Suche findet immer alle aktiven Mitglieder.
+1. Auf der Startseite die Kachel antippen oder den Namen ins Suchfeld tippen. Die Startseite zeigt so viele aktive Mitglieder, wie auf den Bildschirm passen; die Suche findet immer alle.
 2. Die Kachel antippen. Die Buchen-Seite öffnet sich.
 3. Einen Artikel antippen – jeder Tipp fügt ein Stück zur Bestellung hinzu.
 4. „Jetzt X,XX € buchen“ antippen. µEBS speichert und kehrt zur Startseite zurück.
 
-Ab jetzt zeigt die Startseite die Mitglieder, die in den letzten 14 Tagen gebucht haben.
+Ab jetzt kommen auf der Startseite die Mitglieder mit den meisten Stück in den letzten 14 Tagen zuerst auf den Bildschirm; angezeigt wird alphabetisch.
 
 ## 6. Gleich sichern
 

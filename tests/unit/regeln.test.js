@@ -84,7 +84,7 @@ test('Aufstellung seit dem letzten Zeitpunkt mit guthaben >= 0', () => {
   assert.deepEqual(aufstellung([alt, bezahlt], namen).posten, []);
 });
 
-test('Hotlist: höchste Stückzahl, nur aktive, alphabetisch angezeigt', () => {
+test('Hotlist: höchste Stückzahl zuerst, freie Plätze alphabetisch aufgefüllt, nur aktive, alphabetisch angezeigt', () => {
   const m = (id, name, aktiv = true) => ({ id, name, nickname: '', aktiv, guthaben: 0, geschwaerzt: false });
   const mitglieder = [m(1, 'Zora'), m(2, 'Anna'), m(3, 'Bert'), m(4, 'Cleo', false), m(5, 'Dora')];
   const b = [
@@ -92,10 +92,18 @@ test('Hotlist: höchste Stückzahl, nur aktive, alphabetisch angezeigt', () => {
     buchung({ mitglied_id: 4, menge: 9 }), buchung({ mitglied_id: 5, typ: 'aufbuchung', artikel_id: null, gesamtpreis: 100 }),
   ];
   const storno = buchung({ mitglied_id: 3, typ: 'storno', storno_von: b[2].id, artikel_id: null, gesamtpreis: 0 });
-  assert.deepEqual(hotlist(b, mitglieder, 10).map((x) => x.name), ['Anna', 'Bert', 'Zora']);
+  // genug Platz: alle aktiven, die inaktive Cleo nie
+  assert.deepEqual(hotlist(b, mitglieder, 10).map((x) => x.name), ['Anna', 'Bert', 'Dora', 'Zora']);
+  // zwei Plätze: die zwei mit den meisten Stück (Zora 5, Bert 3), alphabetisch
   assert.deepEqual(hotlist(b, mitglieder, 2).map((x) => x.name), ['Bert', 'Zora']);
-  assert.deepEqual(hotlist([...b, storno], mitglieder, 10).map((x) => x.name), ['Anna', 'Zora']);
-  assert.deepEqual(hotlist([], mitglieder, 10), []);
+  // drei Plätze: alle drei mit Stück, Dora (nur Aufbuchung) hat keinen Umsatz
+  assert.deepEqual(hotlist(b, mitglieder, 3).map((x) => x.name), ['Anna', 'Bert', 'Zora']);
+  // stornierte Stück zählen nicht: Bert fällt aus der Umsatzgruppe und wird alphabetisch aufgefüllt
+  assert.deepEqual(hotlist([...b, storno], mitglieder, 3).map((x) => x.name), ['Anna', 'Bert', 'Zora']);
+  assert.deepEqual(hotlist([...b, storno], mitglieder, 2).map((x) => x.name), ['Anna', 'Zora']);
+  // ohne Buchungen: Bildschirm trotzdem gefüllt, alphabetisch
+  assert.deepEqual(hotlist([], mitglieder, 3).map((x) => x.name), ['Anna', 'Bert', 'Dora']);
+  assert.deepEqual(hotlist([], mitglieder, 0), []);
 });
 
 test('Textfelder: Länge, Formelzeichen, Steuerzeichen', () => {

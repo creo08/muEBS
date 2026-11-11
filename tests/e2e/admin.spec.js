@@ -46,6 +46,7 @@ test('Aufbuchung mit Mitgliedersuche, nur aktive Mitglieder', async ({ page, bas
   p.mitglieder[1].aktiv = false;
   await starteMit(page, basis, p);
   await page.goto(basis + '#/admin/aufbuchung');
+  await expect(page.getByRole('heading', { name: 'Aufbuchung', level: 1 })).toBeVisible();
   await page.getByLabel('Mitglied suchen').fill('bente');
   await expect(page.getByText('Kein aktives Mitglied gefunden.')).toBeVisible();
   await page.getByLabel('Mitglied suchen').fill('lex');

@@ -237,7 +237,7 @@ async function startseite() {
       ? aktive.filter((m) => m.name.toLowerCase().includes(q) || m.nickname.toLowerCase().includes(q) || centText(m.guthaben).includes(q) || saldoText(m.guthaben, p.modus).toLowerCase().includes(q)).sort(nachName)
       : hotlist(letzte, mitglieder, kachelPlatz(liste));
     liste.replaceChildren(...treffer.map((m) => kachel(m, p)));
-    leer.textContent = treffer.length ? '' : q ? 'Kein Mitglied gefunden.' : 'Mitglied suchen, um zu buchen.';
+    leer.textContent = treffer.length ? '' : q ? 'Kein Mitglied gefunden.' : 'Noch keine aktiven Mitglieder. Im Admin-Bereich anlegen.';
   };
   suche.addEventListener('input', zeichne);
   let geplant = 0;

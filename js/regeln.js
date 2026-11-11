@@ -185,8 +185,9 @@ export function aufstellung(buchungen, artikelNamen) {
 }
 
 /**
- * Hotlist: aktive Mitglieder mit gültigen Artikel-Buchungen im Zeitraum, die mit der höchsten
- * Stückzahl zuerst gewählt, angezeigt alphabetisch.
+ * Hotlist: füllt die verfügbaren Plätze. Zuerst kommen aktive Mitglieder mit gültigen Artikel-Buchungen
+ * im Zeitraum, die mit der höchsten Stückzahl zuerst; freie Plätze füllen die übrigen aktiven Mitglieder
+ * alphabetisch auf. Angezeigt wird die ganze Auswahl alphabetisch.
  * @param {Buchung[]} buchungenImZeitraum inklusive späterer Storno-Einträge
  * @param {Mitglied[]} mitglieder
  * @param {number} anzahl
@@ -197,11 +198,13 @@ export function hotlist(buchungenImZeitraum, mitglieder, anzahl) {
   for (const b of gueltige(buchungenImZeitraum)) {
     if (b.typ === 'artikel') stueck.set(b.mitglied_id, (stueck.get(b.mitglied_id) ?? 0) + b.menge);
   }
-  return mitglieder
-    .filter((m) => m.aktiv && stueck.has(m.id))
+  const aktive = mitglieder.filter((m) => m.aktiv);
+  const mitUmsatz = aktive
+    .filter((m) => stueck.has(m.id))
     .sort((a, b) => (stueck.get(b.id) ?? 0) - (stueck.get(a.id) ?? 0) || a.id - b.id)
-    .slice(0, anzahl)
-    .sort(nachName);
+    .slice(0, anzahl);
+  const auffuellen = aktive.filter((m) => !stueck.has(m.id)).sort(nachName).slice(0, anzahl - mitUmsatz.length);
+  return [...mitUmsatz, ...auffuellen].sort(nachName);
 }
 
 /**
