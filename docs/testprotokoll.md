@@ -34,7 +34,7 @@ Dieses Protokoll gehört zur Freigabe von `v1.0.0` (siehe [Entwicklung](entwickl
 | Nr. | Ablauf | Erwartet | Befund |
 |---|---|---|---|
 | 5 | Startseite: Mitglied suchen nach Name, Spitzname, Betrag | Treffer erscheinen beim Tippen | |
-| 6 | Startseite nach einigen Buchungen | Zuletzt aktive Mitglieder als Kacheln, alphabetisch, ohne Scrollen | |
+| 6 | Startseite, vor und nach einigen Buchungen | Bildschirm immer mit Kacheln gefüllt, ohne Scrollen; wer viel gebucht hat, ist dabei; Anzeige alphabetisch | |
 | 7 | Buchen: Artikel antippen, Zeile im Bon antippen, „Jetzt X,XX € buchen“ doppelt antippen | Stück dazu bzw. weg; nur eine Buchung; zurück zur Startseite | |
 | 8 | Storno und „Storno aufheben“ in „Letzte Buchungen“ | Rückfrage, Zeile durchgestrichen bzw. wieder normal, Guthaben stimmt | |
 | 9 | Schwärzung: Mitglied unter die Grenze buchen, dann diese Buchung stornieren | Kachel schwarz; nach dem Storno wieder normal, auch wenn noch unter 0 | |

@@ -76,6 +76,8 @@ export async function datenbank(page, name = 'muebs') {
  */
 export async function aufbuchen(page, suche, betrag) {
   await page.goto(page.url().split('#')[0] + '#/admin/aufbuchung');
+  // die Startseite hat auch ein Feld „Mitglied suchen“: erst tippen, wenn die Aufbuchung da ist
+  await expect(page.getByRole('heading', { name: 'Aufbuchung', level: 1 })).toBeVisible();
   await page.getByLabel('Mitglied suchen').fill(suche);
   await page.getByRole('list', { name: 'Treffer' }).getByRole('button').first().click();
   await page.getByLabel('Betrag in Euro').fill(betrag);

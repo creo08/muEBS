@@ -24,8 +24,8 @@ test('neues Projekt Schritt für Schritt, dann Mitglieder und Artikel anlegen', 
   await page.getByRole('button', { name: 'Artikel anlegen' }).click();
   await expect(page.getByText('Bier angelegt (Nr. 1)')).toBeVisible();
   await page.getByRole('link', { name: 'Fertig' }).click();
-  // ohne Buchungen bleibt die Startseite leer, die Suche findet alle
-  await expect(page.locator('.kachel')).toHaveCount(0);
+  // auch ohne Buchungen ist der Bildschirm mit den aktiven Mitgliedern gefüllt
+  await expect(page.locator('.kachel .name')).toHaveText(['Alex Beispiel']);
   await page.getByLabel('Mitglied suchen').fill('lex');
   await expect(page.locator('.kachel')).toHaveCount(1);
   await expect(page.getByRole('link', { name: 'Kassierliste' })).toBeVisible();

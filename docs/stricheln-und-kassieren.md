@@ -55,7 +55,9 @@ Kopfleiste → „Kassierliste“:
 
 ## Startseite
 
-- Ohne Suche zeigt die Startseite die aktiven Mitglieder, die in den letzten 14 Tagen mindestens einen Artikel gebucht haben. Passen nicht alle auf den Bildschirm, kommen die mit den meisten Stück dran. Angezeigt wird immer alphabetisch.
+- Ohne Suche ist die Startseite immer mit so vielen Kacheln gefüllt, wie ohne Scrollen passen.
+- Wer hineinkommt, bestimmt der Umsatz: zuerst die aktiven Mitglieder mit den meisten gebuchten Stück in den letzten 14 Tagen (stornierte zählen nicht). Freie Plätze füllen die übrigen aktiven Mitglieder alphabetisch auf.
+- Angezeigt wird die ganze Auswahl immer alphabetisch, damit die Kacheln nach einer Buchung nicht springen.
 - Die Suche findet immer alle aktiven Mitglieder.
 
 ## Mitglieder und Artikel verwalten
